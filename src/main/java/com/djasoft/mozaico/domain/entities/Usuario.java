@@ -1,7 +1,5 @@
 package com.djasoft.mozaico.domain.entities;
 
-import com.djasoft.mozaico.domain.enums.EstadoUsuario;
-import com.djasoft.mozaico.domain.enums.TipoUsuario;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,6 +7,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+
+import com.djasoft.mozaico.domain.enums.usuario.EstadoUsuario;
+import com.djasoft.mozaico.domain.enums.usuario.TipoDocumentoIdentidad;
+import com.djasoft.mozaico.domain.enums.usuario.TipoUsuario;
 
 import java.time.LocalDateTime;
 
@@ -30,6 +32,13 @@ public class Usuario {
 
     @Column(name = "username", nullable = false, unique = true, length = 50)
     private String username;
+
+    @Column(name = "numero_documento_identidad", nullable = false, unique = true, length = 20)
+    private String numeroDocumentoIdentidad;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_documento_identidad", nullable = false, length = 20)
+    private TipoDocumentoIdentidad tipoDocumentoIdentidad;
 
     @Column(name = "email", nullable = false, unique = true, length = 100)
     private String email;

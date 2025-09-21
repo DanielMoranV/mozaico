@@ -1,7 +1,8 @@
 package com.djasoft.mozaico.web.dtos;
 
-import com.djasoft.mozaico.domain.enums.EstadoUsuario;
-import com.djasoft.mozaico.domain.enums.TipoUsuario;
+import com.djasoft.mozaico.domain.enums.usuario.EstadoUsuario;
+import com.djasoft.mozaico.domain.enums.usuario.TipoDocumentoIdentidad;
+import com.djasoft.mozaico.domain.enums.usuario.TipoUsuario;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +18,8 @@ public class UsuarioResponseDTO {
     private Long idUsuario;
     private String nombre;
     private String username;
+    private String numeroDocumentoIdentidad;
+    private TipoDocumentoIdentidad tipoDocumentoIdentidad;
     private String email;
     private TipoUsuario tipoUsuario;
     private EstadoUsuario estado;

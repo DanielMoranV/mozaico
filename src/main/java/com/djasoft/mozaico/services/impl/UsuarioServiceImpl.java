@@ -31,6 +31,8 @@ public class UsuarioServiceImpl implements UsuarioService {
                 .email(requestDTO.getEmail())
                 .passwordHash(passwordEncoder.encode(requestDTO.getPassword())) // Encrypt the password
                 .tipoUsuario(requestDTO.getTipoUsuario())
+                .tipoDocumentoIdentidad(requestDTO.getTipoDocumentoIdentidad())
+                .numeroDocumentoIdentidad(requestDTO.getNumeroDocumento())
                 .build();
 
         Usuario usuarioGuardado = usuarioRepository.save(nuevoUsuario);
@@ -62,6 +64,8 @@ public class UsuarioServiceImpl implements UsuarioService {
                 .username(usuario.getUsername())
                 .email(usuario.getEmail())
                 .tipoUsuario(usuario.getTipoUsuario())
+                .tipoDocumentoIdentidad(usuario.getTipoDocumentoIdentidad())
+                .numeroDocumentoIdentidad(usuario.getNumeroDocumentoIdentidad())
                 .estado(usuario.getEstado())
                 .fechaCreacion(usuario.getFechaCreacion())
                 .build();

@@ -28,6 +28,8 @@ public interface UsuarioService {
             TipoUsuario tipoUsuario,
             EstadoUsuario estado,
             TipoDocumentoIdentidad tipoDocumentoIdentidad,
-            String numeroDocumento
+            String numeroDocumento,
+            String searchTerm,
+            String logic
     );
 }

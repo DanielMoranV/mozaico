@@ -104,11 +104,14 @@ public class UsuarioServiceImpl implements UsuarioService {
             TipoUsuario tipoUsuario,
             EstadoUsuario estado,
             TipoDocumentoIdentidad tipoDocumentoIdentidad,
-            String numeroDocumento
+            String numeroDocumento,
+            String searchTerm, // Nuevo parámetro
+            String logic
     ) {
         Specification<Usuario> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
+            // Predicados de búsqueda específica
             if (StringUtils.hasText(nombre)) {
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("nombre")), "%" + nombre.toLowerCase() + "%"));
             }
@@ -131,7 +134,29 @@ public class UsuarioServiceImpl implements UsuarioService {
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("numeroDocumentoIdentidad")), "%" + numeroDocumento.toLowerCase() + "%"));
             }
 
-            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+            // Predicado de búsqueda global (searchTerm)
+            if (StringUtils.hasText(searchTerm)) {
+                String lowerSearchTerm = "%" + searchTerm.toLowerCase() + "%";
+                Predicate globalSearchPredicate = criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("nombre")), lowerSearchTerm),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("username")), lowerSearchTerm),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), lowerSearchTerm),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("numeroDocumentoIdentidad")), lowerSearchTerm)
+                );
+                predicates.add(globalSearchPredicate);
+            }
+
+            // Si no hay predicados, devolver null para que findAll devuelva todos los usuarios
+            if (predicates.isEmpty()) {
+                return null;
+            }
+
+            // Combinar predicados con AND u OR según el parámetro 'logic'
+            if ("OR".equalsIgnoreCase(logic)) {
+                return criteriaBuilder.or(predicates.toArray(new Predicate[0]));
+            } else { // Default a AND si no se especifica o es diferente de OR
+                return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+            }
         };
 
         return usuarioRepository.findAll(spec).stream()

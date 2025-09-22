@@ -63,11 +63,12 @@ public class UsuarioController {
             @RequestParam(required = false) TipoUsuario tipoUsuario,
             @RequestParam(required = false) EstadoUsuario estado,
             @RequestParam(required = false) TipoDocumentoIdentidad tipoDocumentoIdentidad,
-            @RequestParam(required = false) String numeroDocumento
+            @RequestParam(required = false) String numeroDocumento,
+            @RequestParam(required = false) String searchTerm, // Nuevo parámetro
+            @RequestParam(required = false, defaultValue = "AND") String logic
     ) {
         List<UsuarioResponseDTO> usuarios = usuarioService.buscarUsuarios(
-                nombre, username, email, tipoUsuario, estado, tipoDocumentoIdentidad, numeroDocumento
-        );
-        return ResponseEntity.ok(ApiResponse.success(usuarios, "Búsqueda de usuarios exitosa"));
+                nombre, username, email, tipoUsuario, estado, tipoDocumentoIdentidad, numeroDocumento, searchTerm, logic
+        );        return ResponseEntity.ok(ApiResponse.success(usuarios, "Búsqueda de usuarios exitosa"));
     }
 }

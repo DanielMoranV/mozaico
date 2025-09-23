@@ -6,6 +6,7 @@ import com.djasoft.mozaico.domain.enums.usuario.TipoUsuario;
 import com.djasoft.mozaico.services.UsuarioService;
 import com.djasoft.mozaico.web.dtos.UsuarioRequestDTO;
 import com.djasoft.mozaico.web.dtos.UsuarioResponseDTO;
+import com.djasoft.mozaico.web.dtos.UsuarioUpdateDTO;
 import com.djasoft.mozaico.web.dtos.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +45,7 @@ public class UsuarioController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UsuarioResponseDTO>> actualizarUsuario(
             @PathVariable Long id,
-            @Valid @RequestBody UsuarioRequestDTO requestDTO) {
+            @Valid @RequestBody UsuarioUpdateDTO requestDTO) {
         UsuarioResponseDTO usuarioActualizado = usuarioService.actualizarUsuario(id, requestDTO);
         return ResponseEntity.ok(ApiResponse.success(usuarioActualizado, "Usuario actualizado exitosamente"));
     }
@@ -70,5 +71,17 @@ public class UsuarioController {
         List<UsuarioResponseDTO> usuarios = usuarioService.buscarUsuarios(
                 nombre, username, email, tipoUsuario, estado, tipoDocumentoIdentidad, numeroDocumento, searchTerm, logic
         );        return ResponseEntity.ok(ApiResponse.success(usuarios, "Búsqueda de usuarios exitosa"));
+    }
+
+    @PatchMapping("/{id}/activar")
+    public ResponseEntity<ApiResponse<UsuarioResponseDTO>> activarUsuario(@PathVariable Long id) {
+        UsuarioResponseDTO usuario = usuarioService.activarUsuario(id);
+        return ResponseEntity.ok(ApiResponse.success(usuario, "Usuario activado exitosamente"));
+    }
+
+    @PatchMapping("/{id}/desactivar")
+    public ResponseEntity<ApiResponse<UsuarioResponseDTO>> desactivarUsuario(@PathVariable Long id) {
+        UsuarioResponseDTO usuario = usuarioService.desactivarUsuario(id);
+        return ResponseEntity.ok(ApiResponse.success(usuario, "Usuario desactivado exitosamente"));
     }
 }

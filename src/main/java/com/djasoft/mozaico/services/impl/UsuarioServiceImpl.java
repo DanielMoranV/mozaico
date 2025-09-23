@@ -8,6 +8,8 @@ import com.djasoft.mozaico.domain.repositories.UsuarioRepository;
 import com.djasoft.mozaico.services.UsuarioService;
 import com.djasoft.mozaico.web.dtos.UsuarioRequestDTO;
 import com.djasoft.mozaico.web.dtos.UsuarioResponseDTO;
+import com.djasoft.mozaico.web.dtos.UsuarioUpdateDTO;
+import com.djasoft.mozaico.web.exceptions.ResourceConflictException;
 import com.djasoft.mozaico.web.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
@@ -18,7 +20,6 @@ import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import jakarta.persistence.criteria.Predicate;
@@ -66,21 +67,37 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     @Override
     @Transactional
-    public UsuarioResponseDTO actualizarUsuario(Long id, UsuarioRequestDTO requestDTO) {
+    public UsuarioResponseDTO actualizarUsuario(Long id, UsuarioUpdateDTO requestDTO) {
         Usuario usuarioExistente = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con el id: " + id));
 
+        // Check for username conflict
+        if (!usuarioExistente.getUsername().equals(requestDTO.getUsername())) {
+            usuarioRepository.findByUsername(requestDTO.getUsername()).ifPresent(u -> {
+                throw new ResourceConflictException("El username ya está en uso: " + requestDTO.getUsername());
+            });
+            usuarioExistente.setUsername(requestDTO.getUsername());
+        }
+
+        // Check for email conflict
+        if (!usuarioExistente.getEmail().equals(requestDTO.getEmail())) {
+            usuarioRepository.findByEmail(requestDTO.getEmail()).ifPresent(u -> {
+                throw new ResourceConflictException("El email ya está en uso: " + requestDTO.getEmail());
+            });
+            usuarioExistente.setEmail(requestDTO.getEmail());
+        }
+
+        // Check for document number conflict
+        if (!usuarioExistente.getNumeroDocumentoIdentidad().equals(requestDTO.getNumeroDocumento())) {
+            usuarioRepository.findByNumeroDocumentoIdentidad(requestDTO.getNumeroDocumento()).ifPresent(u -> {
+                throw new ResourceConflictException("El número de documento ya está en uso: " + requestDTO.getNumeroDocumento());
+            });
+            usuarioExistente.setNumeroDocumentoIdentidad(requestDTO.getNumeroDocumento());
+        }
+
         usuarioExistente.setNombre(requestDTO.getNombre());
-        usuarioExistente.setUsername(requestDTO.getUsername());
-        usuarioExistente.setEmail(requestDTO.getEmail());
         usuarioExistente.setTipoUsuario(requestDTO.getTipoUsuario());
         usuarioExistente.setTipoDocumentoIdentidad(requestDTO.getTipoDocumentoIdentidad());
-        usuarioExistente.setNumeroDocumentoIdentidad(requestDTO.getNumeroDocumento());
-
-        // Solo actualizar la contraseña si se proporciona en el DTO
-        if (StringUtils.hasText(requestDTO.getPassword())) {
-            usuarioExistente.setPasswordHash(passwordEncoder.encode(requestDTO.getPassword()));
-        }
 
         Usuario usuarioActualizado = usuarioRepository.save(usuarioExistente);
         return mapToResponseDTO(usuarioActualizado);
@@ -106,20 +123,22 @@ public class UsuarioServiceImpl implements UsuarioService {
             TipoDocumentoIdentidad tipoDocumentoIdentidad,
             String numeroDocumento,
             String searchTerm, // Nuevo parámetro
-            String logic
-    ) {
+            String logic) {
         Specification<Usuario> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             // Predicados de búsqueda específica
             if (StringUtils.hasText(nombre)) {
-                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("nombre")), "%" + nombre.toLowerCase() + "%"));
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("nombre")),
+                        "%" + nombre.toLowerCase() + "%"));
             }
             if (StringUtils.hasText(username)) {
-                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("username")), "%" + username.toLowerCase() + "%"));
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("username")),
+                        "%" + username.toLowerCase() + "%"));
             }
             if (StringUtils.hasText(email)) {
-                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), "%" + email.toLowerCase() + "%"));
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("email")),
+                        "%" + email.toLowerCase() + "%"));
             }
             if (tipoUsuario != null) {
                 predicates.add(criteriaBuilder.equal(root.get("tipoUsuario"), tipoUsuario));
@@ -131,7 +150,8 @@ public class UsuarioServiceImpl implements UsuarioService {
                 predicates.add(criteriaBuilder.equal(root.get("tipoDocumentoIdentidad"), tipoDocumentoIdentidad));
             }
             if (StringUtils.hasText(numeroDocumento)) {
-                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("numeroDocumentoIdentidad")), "%" + numeroDocumento.toLowerCase() + "%"));
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("numeroDocumentoIdentidad")),
+                        "%" + numeroDocumento.toLowerCase() + "%"));
             }
 
             // Predicado de búsqueda global (searchTerm)
@@ -141,12 +161,13 @@ public class UsuarioServiceImpl implements UsuarioService {
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("nombre")), lowerSearchTerm),
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("username")), lowerSearchTerm),
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), lowerSearchTerm),
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("numeroDocumentoIdentidad")), lowerSearchTerm)
-                );
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("numeroDocumentoIdentidad")),
+                                lowerSearchTerm));
                 predicates.add(globalSearchPredicate);
             }
 
-            // Si no hay predicados, devolver null para que findAll devuelva todos los usuarios
+            // Si no hay predicados, devolver null para que findAll devuelva todos los
+            // usuarios
             if (predicates.isEmpty()) {
                 return null;
             }
@@ -162,6 +183,26 @@ public class UsuarioServiceImpl implements UsuarioService {
         return usuarioRepository.findAll(spec).stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public UsuarioResponseDTO activarUsuario(Long id) {
+        return cambiarEstadoUsuario(id, EstadoUsuario.ACTIVO);
+    }
+
+    @Override
+    @Transactional
+    public UsuarioResponseDTO desactivarUsuario(Long id) {
+        return cambiarEstadoUsuario(id, EstadoUsuario.INACTIVO);
+    }
+
+    private UsuarioResponseDTO cambiarEstadoUsuario(Long id, EstadoUsuario estado) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con el id: " + id));
+        usuario.setEstado(estado);
+        usuarioRepository.save(usuario);
+        return mapToResponseDTO(usuario);
     }
 
     // Private helper method to map Entity to DTO

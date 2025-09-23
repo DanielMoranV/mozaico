@@ -13,6 +13,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long>, JpaSpec
     // Spring Data JPA will automatically implement this method for us
     // It's useful for the security layer to find a user by their username
     Optional<Usuario> findByUsername(String username);
+    Optional<Usuario> findByEmail(String email);
+    Optional<Usuario> findByNumeroDocumentoIdentidad(String numeroDocumentoIdentidad);
 
     // You can add more custom query methods here as needed
 

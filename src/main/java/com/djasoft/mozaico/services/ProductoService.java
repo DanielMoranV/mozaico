@@ -34,4 +34,6 @@ public interface ProductoService {
     ProductoResponseDTO activarProducto(Long id);
 
     ProductoResponseDTO desactivarProducto(Long id);
+
+    ProductoResponseDTO updateProductImage(Long id, org.springframework.web.multipart.MultipartFile file);
 }

@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -82,5 +83,13 @@ public class ProductoController {
     public ResponseEntity<ApiResponse<ProductoResponseDTO>> desactivarProducto(@PathVariable Long id) {
         ProductoResponseDTO producto = productoService.desactivarProducto(id);
         return ResponseEntity.ok(ApiResponse.success(producto, "Producto desactivado exitosamente"));
+    }
+
+    @PostMapping("/{id}/image")
+    public ResponseEntity<ApiResponse<ProductoResponseDTO>> uploadImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        ProductoResponseDTO productoActualizado = productoService.updateProductImage(id, file);
+        return ResponseEntity.ok(ApiResponse.success(productoActualizado, "Imagen del producto actualizada exitosamente"));
     }
 }

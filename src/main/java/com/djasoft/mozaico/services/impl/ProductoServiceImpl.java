@@ -7,6 +7,7 @@ import com.djasoft.mozaico.domain.repositories.CategoriaRepository;
 import com.djasoft.mozaico.domain.repositories.ProductoRepository;
 import com.djasoft.mozaico.services.ProductoService;
 import com.djasoft.mozaico.web.dtos.CategoriaResponseDTO;
+import com.djasoft.mozaico.services.storage.FileStorageService;
 import com.djasoft.mozaico.web.dtos.ProductoRequestDTO;
 import com.djasoft.mozaico.web.dtos.ProductoResponseDTO;
 import com.djasoft.mozaico.web.dtos.ProductoUpdateDTO;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,6 +27,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
+    private final FileStorageService fileStorageService;
 
     @Override
     @Transactional
@@ -126,6 +129,31 @@ public class ProductoServiceImpl implements ProductoService {
     @Transactional
     public ProductoResponseDTO desactivarProducto(Long id) {
         return cambiarEstadoProducto(id, EstadoProducto.INACTIVO);
+    }
+
+    @Override
+    @Transactional
+    public ProductoResponseDTO updateProductImage(Long id, MultipartFile file) {
+        Producto producto = productoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con el id: " + id));
+
+        if (producto.getImagenUrl() != null && !producto.getImagenUrl().isEmpty()) {
+            try {
+                String oldFilename = producto.getImagenUrl().substring(producto.getImagenUrl().lastIndexOf('/') + 1);
+                fileStorageService.delete(oldFilename);
+            } catch (Exception e) {
+                // Log the exception but don't block the upload of the new image
+                System.err.println("Could not delete old file: " + e.getMessage());
+            }
+        }
+
+        String newFilename = fileStorageService.store(file);
+        String newFileUrl = fileStorageService.getFileUrl(newFilename);
+
+        producto.setImagenUrl(newFileUrl);
+        productoRepository.save(producto);
+
+        return mapToResponseDTO(producto);
     }
 
     private ProductoResponseDTO cambiarEstadoProducto(Long id, EstadoProducto estado) {

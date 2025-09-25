@@ -29,6 +29,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Integrar CORS
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/uploads/images/products/**").permitAll()
                         .requestMatchers("/api/**").permitAll() // Allow access to our API endpoints
                         .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated());

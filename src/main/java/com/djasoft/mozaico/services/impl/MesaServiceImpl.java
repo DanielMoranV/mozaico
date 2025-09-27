@@ -157,7 +157,7 @@ public class MesaServiceImpl implements MesaService {
     @Override
     @Transactional(readOnly = true)
     public List<MesaEstadoDetalladoResponseDTO> obtenerMesasConEstadoDetallado() {
-        List<Mesa> mesas = mesaRepository.findAll();
+        List<Mesa> mesas = mesaRepository.findAllByOrderByNumeroMesaAsc();
 
         return mesas.stream()
                 .map(this::mapToMesaEstadoDetalladoResponseDTO)

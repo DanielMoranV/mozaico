@@ -5,6 +5,7 @@ import com.djasoft.mozaico.services.MesaService;
 import com.djasoft.mozaico.web.dtos.MesaRequestDTO;
 import com.djasoft.mozaico.web.dtos.MesaResponseDTO;
 import com.djasoft.mozaico.web.dtos.MesaUpdateDTO;
+import com.djasoft.mozaico.web.dtos.MesaEstadoDetalladoResponseDTO;
 import com.djasoft.mozaico.web.dtos.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -73,5 +74,11 @@ public class MesaController {
     ) {
         List<MesaResponseDTO> mesas = mesaService.buscarMesas(numeroMesa, capacidad, ubicacion, estado, searchTerm, logic);
         return ResponseEntity.ok(ApiResponse.success(mesas, "Búsqueda de mesas exitosa"));
+    }
+
+    @GetMapping("/estado-detallado")
+    public ResponseEntity<ApiResponse<List<MesaEstadoDetalladoResponseDTO>>> obtenerMesasConEstadoDetallado() {
+        List<MesaEstadoDetalladoResponseDTO> mesas = mesaService.obtenerMesasConEstadoDetallado();
+        return ResponseEntity.ok(ApiResponse.success(mesas, "Mesas con estado detallado obtenidas exitosamente"));
     }
 }

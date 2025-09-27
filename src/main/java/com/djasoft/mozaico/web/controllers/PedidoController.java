@@ -6,6 +6,9 @@ import com.djasoft.mozaico.services.PedidoService;
 import com.djasoft.mozaico.web.dtos.PedidoRequestDTO;
 import com.djasoft.mozaico.web.dtos.PedidoResponseDTO;
 import com.djasoft.mozaico.web.dtos.PedidoUpdateDTO;
+import com.djasoft.mozaico.web.dtos.PedidoCompletoRequestDTO;
+import com.djasoft.mozaico.web.dtos.AgregarProductoRequestDTO;
+import com.djasoft.mozaico.web.dtos.DetallePedidoResponseDTO;
 import com.djasoft.mozaico.web.dtos.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +31,13 @@ public class PedidoController {
     public ResponseEntity<ApiResponse<PedidoResponseDTO>> crearPedido(@Valid @RequestBody PedidoRequestDTO requestDTO) {
         PedidoResponseDTO nuevoPedido = pedidoService.crearPedido(requestDTO);
         return new ResponseEntity<>(ApiResponse.created(nuevoPedido, "Pedido creado exitosamente"),
+                HttpStatus.CREATED);
+    }
+
+    @PostMapping("/completo")
+    public ResponseEntity<ApiResponse<PedidoResponseDTO>> crearPedidoCompleto(@Valid @RequestBody PedidoCompletoRequestDTO requestDTO) {
+        PedidoResponseDTO nuevoPedido = pedidoService.crearPedidoCompleto(requestDTO);
+        return new ResponseEntity<>(ApiResponse.created(nuevoPedido, "Pedido completo creado exitosamente"),
                 HttpStatus.CREATED);
     }
 
@@ -79,5 +89,14 @@ public class PedidoController {
     ) {
         List<PedidoResponseDTO> pedidos = pedidoService.buscarPedidos(idCliente, idMesa, idEmpleado, fechaPedidoDesde, fechaPedidoHasta, estado, tipoServicio, searchTerm, logic);
         return ResponseEntity.ok(ApiResponse.success(pedidos, "Búsqueda de pedidos exitosa"));
+    }
+
+    @PostMapping("/{id}/productos")
+    public ResponseEntity<ApiResponse<DetallePedidoResponseDTO>> agregarProductoAPedido(
+            @PathVariable Integer id,
+            @Valid @RequestBody AgregarProductoRequestDTO requestDTO) {
+        DetallePedidoResponseDTO detalle = pedidoService.agregarProductoAPedido(id, requestDTO);
+        return new ResponseEntity<>(ApiResponse.created(detalle, "Producto agregado al pedido exitosamente"),
+                HttpStatus.CREATED);
     }
 }

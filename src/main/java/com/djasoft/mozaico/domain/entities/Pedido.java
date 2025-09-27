@@ -44,7 +44,7 @@ public class Pedido {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     @Column(name = "estado")
-    private EstadoPedido estado = EstadoPedido.PENDIENTE;
+    private EstadoPedido estado = EstadoPedido.ABIERTO;
 
     @Enumerated(EnumType.STRING)
     @Builder.Default

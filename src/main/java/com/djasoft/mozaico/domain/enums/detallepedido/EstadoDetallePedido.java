@@ -1,8 +1,8 @@
 package com.djasoft.mozaico.domain.enums.detallepedido;
 
 public enum EstadoDetallePedido {
-    PENDIENTE,
-    EN_PREPARACION,
-    LISTO,
-    ENTREGADO
+    PEDIDO,           // Cliente pidió el producto
+    EN_PREPARACION,   // Cocina preparando
+    SERVIDO,          // Producto entregado al cliente
+    CANCELADO         // Producto cancelado
 }

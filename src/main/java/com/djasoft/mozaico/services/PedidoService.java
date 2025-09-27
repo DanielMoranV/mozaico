@@ -5,6 +5,9 @@ import com.djasoft.mozaico.domain.enums.pedido.TipoServicio;
 import com.djasoft.mozaico.web.dtos.PedidoRequestDTO;
 import com.djasoft.mozaico.web.dtos.PedidoResponseDTO;
 import com.djasoft.mozaico.web.dtos.PedidoUpdateDTO;
+import com.djasoft.mozaico.web.dtos.PedidoCompletoRequestDTO;
+import com.djasoft.mozaico.web.dtos.AgregarProductoRequestDTO;
+import com.djasoft.mozaico.web.dtos.DetallePedidoResponseDTO;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,4 +39,8 @@ public interface PedidoService {
     );
 
     PedidoResponseDTO recalcularTotalesPedido(Integer idPedido);
+
+    PedidoResponseDTO crearPedidoCompleto(PedidoCompletoRequestDTO requestDTO);
+
+    DetallePedidoResponseDTO agregarProductoAPedido(Integer idPedido, AgregarProductoRequestDTO requestDTO);
 }

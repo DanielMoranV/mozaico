@@ -1,12 +1,19 @@
 package com.djasoft.mozaico.services.impl;
 
 import com.djasoft.mozaico.domain.entities.Mesa;
+import com.djasoft.mozaico.domain.entities.Pedido;
+import com.djasoft.mozaico.domain.entities.Reserva;
+import com.djasoft.mozaico.domain.entities.DetallePedido;
 import com.djasoft.mozaico.domain.enums.mesa.EstadoMesa;
 import com.djasoft.mozaico.domain.repositories.MesaRepository;
+import com.djasoft.mozaico.domain.repositories.PedidoRepository;
+import com.djasoft.mozaico.domain.repositories.ReservaRepository;
+import com.djasoft.mozaico.domain.repositories.DetallePedidoRepository;
 import com.djasoft.mozaico.services.MesaService;
 import com.djasoft.mozaico.web.dtos.MesaRequestDTO;
 import com.djasoft.mozaico.web.dtos.MesaResponseDTO;
 import com.djasoft.mozaico.web.dtos.MesaUpdateDTO;
+import com.djasoft.mozaico.web.dtos.MesaEstadoDetalladoResponseDTO;
 import com.djasoft.mozaico.web.exceptions.ResourceNotFoundException;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +30,9 @@ import java.util.stream.Collectors;
 public class MesaServiceImpl implements MesaService {
 
     private final MesaRepository mesaRepository;
+    private final PedidoRepository pedidoRepository;
+    private final ReservaRepository reservaRepository;
+    private final DetallePedidoRepository detallePedidoRepository;
 
     @Override
     @Transactional
@@ -142,6 +152,92 @@ public class MesaServiceImpl implements MesaService {
         return mesaRepository.findAll(spec).stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MesaEstadoDetalladoResponseDTO> obtenerMesasConEstadoDetallado() {
+        List<Mesa> mesas = mesaRepository.findAll();
+
+        return mesas.stream()
+                .map(this::mapToMesaEstadoDetalladoResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    private MesaEstadoDetalladoResponseDTO mapToMesaEstadoDetalladoResponseDTO(Mesa mesa) {
+        MesaEstadoDetalladoResponseDTO.MesaEstadoDetalladoResponseDTOBuilder builder =
+                MesaEstadoDetalladoResponseDTO.builder()
+                .idMesa(mesa.getIdMesa())
+                .numeroMesa(mesa.getNumeroMesa())
+                .capacidad(mesa.getCapacidad())
+                .ubicacion(mesa.getUbicacion())
+                .estado(mesa.getEstado())
+                .observaciones(mesa.getObservaciones())
+                .fechaCreacion(mesa.getFechaCreacion());
+
+        // Si la mesa está ocupada, buscar el último pedido
+        if (mesa.getEstado() == EstadoMesa.OCUPADA) {
+            Pedido ultimoPedido = pedidoRepository.findFirstByMesaOrderByFechaPedidoDesc(mesa);
+            if (ultimoPedido != null) {
+                builder.ultimoPedido(mapToPedidoBasicoResponseDTO(ultimoPedido));
+            }
+        }
+
+        // Si la mesa está reservada, buscar la última reserva
+        if (mesa.getEstado() == EstadoMesa.RESERVADA) {
+            Reserva ultimaReserva = reservaRepository.findFirstByMesaOrderByFechaHoraReservaDesc(mesa);
+            if (ultimaReserva != null) {
+                builder.ultimaReserva(mapToReservaBasicaResponseDTO(ultimaReserva));
+            }
+        }
+
+        return builder.build();
+    }
+
+    private MesaEstadoDetalladoResponseDTO.PedidoBasicoResponseDTO mapToPedidoBasicoResponseDTO(Pedido pedido) {
+        // Obtener detalles del pedido
+        List<DetallePedido> detalles = detallePedidoRepository.findByPedido(pedido);
+        List<MesaEstadoDetalladoResponseDTO.DetallePedidoBasicoResponseDTO> detallesDTO =
+                detalles.stream()
+                    .map(this::mapToDetallePedidoBasicoResponseDTO)
+                    .collect(Collectors.toList());
+
+        return MesaEstadoDetalladoResponseDTO.PedidoBasicoResponseDTO.builder()
+                .idPedido(pedido.getIdPedido())
+                .fechaPedido(pedido.getFechaPedido())
+                .estado(pedido.getEstado().toString())
+                .tipoServicio(pedido.getTipoServicio().toString())
+                .cliente(pedido.getCliente() != null ?
+                    pedido.getCliente().getNombre() + " " + pedido.getCliente().getApellido() :
+                    "Cliente anónimo")
+                .empleado(pedido.getEmpleado() != null ? pedido.getEmpleado().getNombre() : "Sin asignar")
+                .total(pedido.getTotal() != null ? pedido.getTotal().doubleValue() : 0.0)
+                .detalles(detallesDTO)
+                .build();
+    }
+
+    private MesaEstadoDetalladoResponseDTO.DetallePedidoBasicoResponseDTO mapToDetallePedidoBasicoResponseDTO(DetallePedido detalle) {
+        return MesaEstadoDetalladoResponseDTO.DetallePedidoBasicoResponseDTO.builder()
+                .idDetalle(detalle.getIdDetalle())
+                .producto(detalle.getProducto() != null ? detalle.getProducto().getNombre() : "Producto sin nombre")
+                .cantidad(detalle.getCantidad())
+                .precioUnitario(detalle.getPrecioUnitario() != null ? detalle.getPrecioUnitario().doubleValue() : 0.0)
+                .estado(detalle.getEstado() != null ? detalle.getEstado().toString() : "PENDIENTE")
+                .build();
+    }
+
+    private MesaEstadoDetalladoResponseDTO.ReservaBasicaResponseDTO mapToReservaBasicaResponseDTO(Reserva reserva) {
+        return MesaEstadoDetalladoResponseDTO.ReservaBasicaResponseDTO.builder()
+                .idReserva(reserva.getIdReserva())
+                .fechaHoraReserva(reserva.getFechaHoraReserva())
+                .numeroPersonas(reserva.getNumeroPersonas())
+                .estado(reserva.getEstado().toString())
+                .cliente(reserva.getCliente() != null ?
+                    reserva.getCliente().getNombre() + " " + reserva.getCliente().getApellido() :
+                    "Cliente sin nombre")
+                .observaciones(reserva.getObservaciones())
+                .fechaCreacion(reserva.getFechaCreacion())
+                .build();
     }
 
     private MesaResponseDTO mapToResponseDTO(Mesa mesa) {

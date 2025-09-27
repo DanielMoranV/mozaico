@@ -4,14 +4,17 @@ import com.djasoft.mozaico.domain.entities.Cliente;
 import com.djasoft.mozaico.domain.entities.DetallePedido;
 import com.djasoft.mozaico.domain.entities.Mesa;
 import com.djasoft.mozaico.domain.entities.Pedido;
+import com.djasoft.mozaico.domain.entities.Producto;
 import com.djasoft.mozaico.domain.entities.Usuario;
 import com.djasoft.mozaico.domain.enums.mesa.EstadoMesa;
 import com.djasoft.mozaico.domain.enums.pedido.EstadoPedido;
 import com.djasoft.mozaico.domain.enums.pedido.TipoServicio;
+import com.djasoft.mozaico.domain.enums.detallepedido.EstadoDetallePedido;
 import com.djasoft.mozaico.domain.repositories.ClienteRepository;
 import com.djasoft.mozaico.domain.repositories.DetallePedidoRepository;
 import com.djasoft.mozaico.domain.repositories.MesaRepository;
 import com.djasoft.mozaico.domain.repositories.PedidoRepository;
+import com.djasoft.mozaico.domain.repositories.ProductoRepository;
 import com.djasoft.mozaico.domain.repositories.UsuarioRepository;
 import com.djasoft.mozaico.services.MesaService;
 import com.djasoft.mozaico.services.PedidoService;
@@ -20,7 +23,11 @@ import com.djasoft.mozaico.web.dtos.MesaResponseDTO;
 import com.djasoft.mozaico.web.dtos.PedidoRequestDTO;
 import com.djasoft.mozaico.web.dtos.PedidoResponseDTO;
 import com.djasoft.mozaico.web.dtos.PedidoUpdateDTO;
+import com.djasoft.mozaico.web.dtos.PedidoCompletoRequestDTO;
 import com.djasoft.mozaico.web.dtos.UsuarioResponseDTO;
+import com.djasoft.mozaico.web.dtos.DetallePedidoResponseDTO;
+import com.djasoft.mozaico.web.dtos.ProductoResponseDTO;
+import com.djasoft.mozaico.web.dtos.AgregarProductoRequestDTO;
 import com.djasoft.mozaico.web.exceptions.ResourceNotFoundException;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +49,7 @@ public class PedidoServiceImpl implements PedidoService {
     private final ClienteRepository clienteRepository;
     private final MesaRepository mesaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ProductoRepository productoRepository;
     private final DetallePedidoRepository detallePedidoRepository;
     private final MesaService mesaService;
 
@@ -68,7 +76,7 @@ public class PedidoServiceImpl implements PedidoService {
                 .cliente(cliente)
                 .mesa(mesa)
                 .empleado(empleado)
-                .estado(pedidoRequestDTO.getEstado() != null ? pedidoRequestDTO.getEstado() : EstadoPedido.PENDIENTE)
+                .estado(pedidoRequestDTO.getEstado() != null ? pedidoRequestDTO.getEstado() : EstadoPedido.ABIERTO)
                 .tipoServicio(pedidoRequestDTO.getTipoServicio() != null ? pedidoRequestDTO.getTipoServicio()
                         : TipoServicio.MESA)
                 .observaciones(pedidoRequestDTO.getObservaciones())
@@ -165,10 +173,9 @@ public class PedidoServiceImpl implements PedidoService {
         pedido.setEstado(nuevoEstado);
         Pedido pedidoActualizado = pedidoRepository.save(pedido);
 
-        // Actualizar estado de la mesa si el pedido es para mesa y cambia a entregado o
-        // cancelado
+        // Actualizar estado de la mesa si el pedido es para mesa y cambia a pagado o cancelado
         if (pedidoActualizado.getTipoServicio() == TipoServicio.MESA &&
-                (nuevoEstado == EstadoPedido.ENTREGADO || nuevoEstado == EstadoPedido.CANCELADO)) {
+                (nuevoEstado == EstadoPedido.PAGADO || nuevoEstado == EstadoPedido.CANCELADO)) {
             mesaService.cambiarEstadoMesa(pedidoActualizado.getMesa().getIdMesa(), EstadoMesa.DISPONIBLE);
         }
 
@@ -283,6 +290,10 @@ public class PedidoServiceImpl implements PedidoService {
                     .build();
         }
 
+        List<DetallePedidoResponseDTO> detallesDTO = detallePedidoRepository.findByPedido(pedido).stream()
+                .map(this::mapDetallePedidoToResponseDTO)
+                .collect(Collectors.toList());
+
         return PedidoResponseDTO.builder()
                 .idPedido(pedido.getIdPedido())
                 .cliente(clienteDTO)
@@ -297,6 +308,180 @@ public class PedidoServiceImpl implements PedidoService {
                 .total(pedido.getTotal())
                 .observaciones(pedido.getObservaciones())
                 .direccionDelivery(pedido.getDireccionDelivery())
+                .detalles(detallesDTO)
                 .build();
+    }
+
+    private DetallePedidoResponseDTO mapDetallePedidoToResponseDTO(DetallePedido detalle) {
+        ProductoResponseDTO productoDTO = ProductoResponseDTO.builder()
+                .idProducto(detalle.getProducto().getIdProducto())
+                .nombre(detalle.getProducto().getNombre())
+                .precio(detalle.getProducto().getPrecio())
+                .build();
+
+        return DetallePedidoResponseDTO.builder()
+                .idDetalle(detalle.getIdDetalle())
+                .pedido(null)
+                .producto(productoDTO)
+                .cantidad(detalle.getCantidad())
+                .precioUnitario(detalle.getPrecioUnitario())
+                .subtotal(detalle.getSubtotal())
+                .observaciones(detalle.getObservaciones())
+                .estado(detalle.getEstado())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public PedidoResponseDTO crearPedidoCompleto(PedidoCompletoRequestDTO requestDTO) {
+        // Validaciones iniciales
+        validarPedidoCompleto(requestDTO);
+
+        // Obtener entidades relacionadas
+        Cliente cliente = null;
+        if (requestDTO.getIdCliente() != null) {
+            cliente = clienteRepository.findById(requestDTO.getIdCliente())
+                    .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con el ID: " + requestDTO.getIdCliente()));
+        }
+
+        Mesa mesa = null;
+        if (requestDTO.getIdMesa() != null) {
+            mesa = mesaRepository.findById(requestDTO.getIdMesa())
+                    .orElseThrow(() -> new ResourceNotFoundException("Mesa no encontrada con el ID: " + requestDTO.getIdMesa()));
+
+            // Verificar que la mesa esté disponible
+            if (mesa.getEstado() != EstadoMesa.DISPONIBLE) {
+                throw new IllegalArgumentException("La mesa " + mesa.getNumeroMesa() + " no está disponible");
+            }
+        }
+
+        Usuario empleado = usuarioRepository.findById(requestDTO.getIdEmpleado())
+                .orElseThrow(() -> new ResourceNotFoundException("Empleado no encontrado con el ID: " + requestDTO.getIdEmpleado()));
+
+        // Crear el pedido principal
+        Pedido pedido = Pedido.builder()
+                .cliente(cliente)
+                .mesa(mesa)
+                .empleado(empleado)
+                .estado(EstadoPedido.ABIERTO)
+                .tipoServicio(requestDTO.getTipoServicio())
+                .observaciones(requestDTO.getObservaciones())
+                .direccionDelivery(requestDTO.getDireccionDelivery())
+                .subtotal(BigDecimal.ZERO)
+                .impuestos(BigDecimal.ZERO)
+                .descuento(BigDecimal.ZERO)
+                .total(BigDecimal.ZERO)
+                .build();
+
+        // Guardar el pedido para obtener el ID
+        pedido = pedidoRepository.save(pedido);
+
+        // Crear los detalles del pedido
+        BigDecimal subtotalCalculado = BigDecimal.ZERO;
+        for (PedidoCompletoRequestDTO.DetallePedidoCompletoRequestDTO detalleDTO : requestDTO.getDetalles()) {
+            Producto producto = productoRepository.findById(detalleDTO.getIdProducto())
+                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con el ID: " + detalleDTO.getIdProducto()));
+
+            BigDecimal precioUnitario = producto.getPrecio();
+            BigDecimal subtotalDetalle = precioUnitario.multiply(BigDecimal.valueOf(detalleDTO.getCantidad()));
+
+            DetallePedido detalle = DetallePedido.builder()
+                    .pedido(pedido)
+                    .producto(producto)
+                    .cantidad(detalleDTO.getCantidad())
+                    .precioUnitario(precioUnitario)
+                    .subtotal(subtotalDetalle)
+                    .observaciones(detalleDTO.getObservaciones())
+                    .build();
+
+            detallePedidoRepository.save(detalle);
+            subtotalCalculado = subtotalCalculado.add(subtotalDetalle);
+        }
+
+        // Calcular totales
+        BigDecimal impuestos = subtotalCalculado.multiply(TAX_RATE);
+        BigDecimal descuento = subtotalCalculado.multiply(DISCOUNT_RATE);
+        BigDecimal total = subtotalCalculado.add(impuestos).subtract(descuento);
+
+        // Actualizar totales del pedido
+        pedido.setSubtotal(subtotalCalculado);
+        pedido.setImpuestos(impuestos);
+        pedido.setDescuento(descuento);
+        pedido.setTotal(total);
+
+        // Guardar el pedido actualizado
+        pedido = pedidoRepository.save(pedido);
+
+        // Actualizar estado de la mesa si es necesario
+        if (mesa != null && requestDTO.getTipoServicio() == TipoServicio.MESA) {
+            mesaService.cambiarEstadoMesa(mesa.getIdMesa(), EstadoMesa.OCUPADA);
+        }
+
+        return mapToResponseDTO(pedido);
+    }
+
+    private void validarPedidoCompleto(PedidoCompletoRequestDTO requestDTO) {
+        // Validar que para delivery tenga dirección
+        if (requestDTO.getTipoServicio() == TipoServicio.DELIVERY) {
+            if (requestDTO.getDireccionDelivery() == null || requestDTO.getDireccionDelivery().trim().isEmpty()) {
+                throw new IllegalArgumentException("La dirección de delivery es requerida para pedidos de delivery");
+            }
+        }
+
+        // Validar que para mesa tenga mesa asignada
+        if (requestDTO.getTipoServicio() == TipoServicio.MESA) {
+            if (requestDTO.getIdMesa() == null) {
+                throw new IllegalArgumentException("El ID de mesa es requerido para pedidos en mesa");
+            }
+        }
+
+        // Validar que la lista de detalles no esté vacía
+        if (requestDTO.getDetalles() == null || requestDTO.getDetalles().isEmpty()) {
+            throw new IllegalArgumentException("El pedido debe tener al menos un producto");
+        }
+
+        // Validar cantidades positivas
+        for (PedidoCompletoRequestDTO.DetallePedidoCompletoRequestDTO detalle : requestDTO.getDetalles()) {
+            if (detalle.getCantidad() == null || detalle.getCantidad() <= 0) {
+                throw new IllegalArgumentException("La cantidad debe ser mayor a 0");
+            }
+        }
+    }
+
+    @Override
+    @Transactional
+    public DetallePedidoResponseDTO agregarProductoAPedido(Integer idPedido, AgregarProductoRequestDTO requestDTO) {
+        // Verificar que el pedido existe y está abierto
+        Pedido pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con el ID: " + idPedido));
+
+        if (pedido.getEstado() != EstadoPedido.ABIERTO) {
+            throw new IllegalStateException("Solo se pueden agregar productos a pedidos abiertos");
+        }
+
+        // Verificar que el producto existe
+        Producto producto = productoRepository.findById(requestDTO.getIdProducto())
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con el ID: " + requestDTO.getIdProducto()));
+
+        // Crear el detalle del pedido
+        BigDecimal precioUnitario = producto.getPrecio();
+        BigDecimal subtotal = precioUnitario.multiply(BigDecimal.valueOf(requestDTO.getCantidad()));
+
+        DetallePedido detalle = DetallePedido.builder()
+                .pedido(pedido)
+                .producto(producto)
+                .cantidad(requestDTO.getCantidad())
+                .precioUnitario(precioUnitario)
+                .subtotal(subtotal)
+                .observaciones(requestDTO.getObservaciones())
+                .estado(EstadoDetallePedido.PEDIDO)
+                .build();
+
+        DetallePedido detalleGuardado = detallePedidoRepository.save(detalle);
+
+        // Recalcular totales del pedido
+        recalcularTotalesPedido(idPedido);
+
+        return mapDetallePedidoToResponseDTO(detalleGuardado);
     }
 }

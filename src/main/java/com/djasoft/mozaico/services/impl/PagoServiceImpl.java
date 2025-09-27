@@ -57,7 +57,7 @@ public class PagoServiceImpl implements PagoService {
 
         // Si el pago es completado, actualizar el estado del pedido
         if (pagoGuardado.getEstado() == EstadoPago.COMPLETADO) {
-            pedidoService.cambiarEstadoPedido(pedido.getIdPedido(), EstadoPedido.ENTREGADO);
+            pedidoService.cambiarEstadoPedido(pedido.getIdPedido(), EstadoPedido.PAGADO);
         }
 
         return mapToResponseDTO(pagoGuardado);
@@ -109,7 +109,7 @@ public class PagoServiceImpl implements PagoService {
 
         // Si el pago es completado, actualizar el estado del pedido
         if (pagoActualizado.getEstado() == EstadoPago.COMPLETADO) {
-            pedidoService.cambiarEstadoPedido(pagoActualizado.getPedido().getIdPedido(), EstadoPedido.ENTREGADO);
+            pedidoService.cambiarEstadoPedido(pagoActualizado.getPedido().getIdPedido(), EstadoPedido.PAGADO);
         }
 
         return mapToResponseDTO(pagoActualizado);
@@ -136,7 +136,7 @@ public class PagoServiceImpl implements PagoService {
 
         // Si el pago es completado, actualizar el estado del pedido
         if (pagoActualizado.getEstado() == EstadoPago.COMPLETADO) {
-            pedidoService.cambiarEstadoPedido(pagoActualizado.getPedido().getIdPedido(), EstadoPedido.ENTREGADO);
+            pedidoService.cambiarEstadoPedido(pagoActualizado.getPedido().getIdPedido(), EstadoPedido.PAGADO);
         }
 
         return mapToResponseDTO(pagoActualizado);

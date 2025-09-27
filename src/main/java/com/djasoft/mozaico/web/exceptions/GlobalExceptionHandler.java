@@ -80,6 +80,11 @@ public class GlobalExceptionHandler {
         // Log the exception here for debugging purposes
         // log.error("An unexpected error occurred: ", ex);
 
+        // Don't catch NoHandlerFoundException here - let it be handled by its specific handler
+        if (ex instanceof NoHandlerFoundException) {
+            return handleNoHandlerFoundException((NoHandlerFoundException) ex);
+        }
+
         ApiResponse<?> errorResponse = ApiResponse.error(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Ocurrió un error inesperado en el servidor",

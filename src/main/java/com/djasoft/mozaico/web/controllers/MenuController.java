@@ -4,6 +4,7 @@ import com.djasoft.mozaico.services.MenuService;
 import com.djasoft.mozaico.web.dtos.MenuRequestDTO;
 import com.djasoft.mozaico.web.dtos.MenuResponseDTO;
 import com.djasoft.mozaico.web.dtos.MenuUpdateDTO;
+import com.djasoft.mozaico.web.dtos.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,44 +21,44 @@ public class MenuController {
     private final MenuService menuService;
 
     @PostMapping
-    public ResponseEntity<MenuResponseDTO> crearMenu(@Valid @RequestBody MenuRequestDTO menuRequestDTO) {
+    public ResponseEntity<ApiResponse<MenuResponseDTO>> crearMenu(@Valid @RequestBody MenuRequestDTO menuRequestDTO) {
         MenuResponseDTO menu = menuService.crearMenu(menuRequestDTO);
-        return new ResponseEntity<>(menu, HttpStatus.CREATED);
+        return new ResponseEntity<>(ApiResponse.created(menu, "Menú creado exitosamente"), HttpStatus.CREATED);
     }
 
     @GetMapping
-    public ResponseEntity<List<MenuResponseDTO>> obtenerTodosLosMenus() {
+    public ResponseEntity<ApiResponse<List<MenuResponseDTO>>> obtenerTodosLosMenus() {
         List<MenuResponseDTO> menus = menuService.obtenerTodosLosMenus();
-        return ResponseEntity.ok(menus);
+        return ResponseEntity.ok(ApiResponse.success(menus, "Menús obtenidos exitosamente"));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<MenuResponseDTO> obtenerMenuPorId(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<MenuResponseDTO>> obtenerMenuPorId(@PathVariable Integer id) {
         MenuResponseDTO menu = menuService.obtenerMenuPorId(id);
-        return ResponseEntity.ok(menu);
+        return ResponseEntity.ok(ApiResponse.success(menu, "Menú encontrado exitosamente"));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<MenuResponseDTO> actualizarMenu(@PathVariable Integer id, @Valid @RequestBody MenuUpdateDTO menuUpdateDTO) {
+    public ResponseEntity<ApiResponse<MenuResponseDTO>> actualizarMenu(@PathVariable Integer id, @Valid @RequestBody MenuUpdateDTO menuUpdateDTO) {
         MenuResponseDTO menu = menuService.actualizarMenu(id, menuUpdateDTO);
-        return ResponseEntity.ok(menu);
+        return ResponseEntity.ok(ApiResponse.success(menu, "Menú actualizado exitosamente"));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarMenu(@PathVariable Integer id) {
+    public ResponseEntity<ApiResponse<Void>> eliminarMenu(@PathVariable Integer id) {
         menuService.eliminarMenu(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.success(null, "Menú eliminado exitosamente"));
     }
 
     @PostMapping("/{idMenu}/productos/{idProducto}")
-    public ResponseEntity<MenuResponseDTO> agregarProductoAMenu(@PathVariable Integer idMenu, @PathVariable Long idProducto) {
+    public ResponseEntity<ApiResponse<MenuResponseDTO>> agregarProductoAMenu(@PathVariable Integer idMenu, @PathVariable Long idProducto) {
         MenuResponseDTO menu = menuService.agregarProductoAMenu(idMenu, idProducto);
-        return ResponseEntity.ok(menu);
+        return ResponseEntity.ok(ApiResponse.success(menu, "Producto agregado al menú exitosamente"));
     }
 
     @DeleteMapping("/{idMenu}/productos/{idProducto}")
-    public ResponseEntity<MenuResponseDTO> eliminarProductoDeMenu(@PathVariable Integer idMenu, @PathVariable Long idProducto) {
+    public ResponseEntity<ApiResponse<MenuResponseDTO>> eliminarProductoDeMenu(@PathVariable Integer idMenu, @PathVariable Long idProducto) {
         MenuResponseDTO menu = menuService.eliminarProductoDeMenu(idMenu, idProducto);
-        return ResponseEntity.ok(menu);
+        return ResponseEntity.ok(ApiResponse.success(menu, "Producto eliminado del menú exitosamente"));
     }
 }

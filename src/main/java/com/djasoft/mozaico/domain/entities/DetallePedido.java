@@ -45,5 +45,5 @@ public class DetallePedido {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     @Column(name = "estado")
-    private EstadoDetallePedido estado = EstadoDetallePedido.PENDIENTE;
+    private EstadoDetallePedido estado = EstadoDetallePedido.PEDIDO;
 }

@@ -27,6 +27,15 @@ public class Compra {
     @JoinColumn(name = "id_proveedor")
     private Proveedor proveedor;
 
+    // === AUDITORÍA Y SEGURIDAD ===
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario_creacion", nullable = false)
+    private Usuario usuarioCreacion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_empresa", nullable = false)
+    private Empresa empresa;
+
     @Column(name = "fecha_compra", nullable = false)
     private LocalDate fechaCompra;
 

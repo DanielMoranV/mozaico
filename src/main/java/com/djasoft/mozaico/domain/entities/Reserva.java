@@ -31,6 +31,15 @@ public class Reserva {
     @JoinColumn(name = "id_mesa", nullable = false)
     private Mesa mesa;
 
+    // === AUDITORÍA Y SEGURIDAD ===
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario_creacion", nullable = false)
+    private Usuario usuarioCreacion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_empresa", nullable = false)
+    private Empresa empresa;
+
     @Column(name = "fecha_hora_reserva", nullable = false)
     private LocalDateTime fechaHoraReserva;
 

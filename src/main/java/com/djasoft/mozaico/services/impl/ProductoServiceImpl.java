@@ -1,9 +1,11 @@
 package com.djasoft.mozaico.services.impl;
 
 import com.djasoft.mozaico.domain.entities.Categoria;
+import com.djasoft.mozaico.domain.entities.Empresa;
 import com.djasoft.mozaico.domain.entities.Producto;
 import com.djasoft.mozaico.domain.enums.producto.EstadoProducto;
 import com.djasoft.mozaico.domain.repositories.CategoriaRepository;
+import com.djasoft.mozaico.domain.repositories.EmpresaRepository;
 import com.djasoft.mozaico.domain.repositories.ProductoRepository;
 import com.djasoft.mozaico.services.ProductoService;
 import com.djasoft.mozaico.web.dtos.CategoriaResponseDTO;
@@ -27,6 +29,7 @@ public class ProductoServiceImpl implements ProductoService {
 
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
+    private final EmpresaRepository empresaRepository;
     private final FileStorageService fileStorageService;
 
     @Override
@@ -156,6 +159,45 @@ public class ProductoServiceImpl implements ProductoService {
         return mapToResponseDTO(producto);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductoResponseDTO> buscarProductosPorEmpresa(
+            Integer idEmpresa,
+            Long idCategoria,
+            Boolean disponible,
+            EstadoProducto estado) {
+
+        Specification<Producto> spec = (root, query, criteriaBuilder) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+
+            // FILTRO OBLIGATORIO: por empresa (multitenant)
+            if (idEmpresa != null) {
+                predicates.add(criteriaBuilder.equal(root.get("empresa").get("idEmpresa"), idEmpresa));
+            }
+
+            // Filtro opcional: por categoría
+            if (idCategoria != null) {
+                predicates.add(criteriaBuilder.equal(root.get("categoria").get("idCategoria"), idCategoria));
+            }
+
+            // Filtro: disponible
+            if (disponible != null) {
+                predicates.add(criteriaBuilder.equal(root.get("disponible"), disponible));
+            }
+
+            // Filtro: estado
+            if (estado != null) {
+                predicates.add(criteriaBuilder.equal(root.get("estado"), estado));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        return productoRepository.findAll(spec).stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
     private ProductoResponseDTO cambiarEstadoProducto(Long id, EstadoProducto estado) {
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con el id: " + id));
@@ -261,5 +303,26 @@ public class ProductoServiceImpl implements ProductoService {
         return productoRepository.findAll(spec).stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductoResponseDTO> buscarProductosPorSlugEmpresa(
+            String slug,
+            Long idCategoria,
+            Boolean disponible,
+            EstadoProducto estado) {
+
+        // Buscar la empresa por su slug
+        Empresa empresa = empresaRepository.findBySlug(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa no encontrada con el slug: " + slug));
+
+        // Usar el método existente con el ID de la empresa encontrada
+        return buscarProductosPorEmpresa(
+                empresa.getIdEmpresa().intValue(),
+                idCategoria,
+                disponible,
+                estado
+        );
     }
 }

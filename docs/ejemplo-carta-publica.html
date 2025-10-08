@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carta Digital - Mozaico Restaurant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .filtros {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        select, input {
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .productos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .producto-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .producto-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-color: #667eea;
+        }
+
+        .producto-imagen {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+        }
+
+        .producto-info {
+            padding: 20px;
+        }
+
+        .producto-categoria {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-bottom: 10px;
+        }
+
+        .producto-nombre {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .producto-descripcion {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            min-height: 40px;
+            line-height: 1.4;
+        }
+
+        .producto-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .precio {
+            font-size: 1.8em;
+            color: #e91e63;
+            font-weight: bold;
+        }
+
+        .btn-agregar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-agregar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-top: 10px;
+        }
+
+        .badge-preparacion {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-alcoholico {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .producto-tiempo {
+            color: #666;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .productos-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filtros {
+                flex-direction: column;
+            }
+
+            select, input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍽️ Nuestra Carta Digital</h1>
+            <p class="subtitle">Mozaico Restaurant - Disfruta de lo mejor</p>
+        </header>
+
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat-item">
+                <div class="stat-number" id="totalProductos">0</div>
+                <div class="stat-label">Productos</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="totalCategorias">0</div>
+                <div class="stat-label">Categorías</div>
+            </div>
+        </div>
+
+        <div class="filtros">
+            <select id="filtroCategoria">
+                <option value="">📋 Todas las categorías</option>
+            </select>
+
+            <input
+                type="text"
+                id="busqueda"
+                placeholder="🔍 Buscar productos..."
+            >
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Cargando carta...</p>
+        </div>
+
+        <div id="productos" class="productos-grid"></div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <h3>😔 No se encontraron productos</h3>
+            <p>Intenta con otro filtro o categoría</p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8091';
+        const ID_EMPRESA = 1; // ⚠️ CAMBIAR según tu empresa (multitenant)
+
+        let todosLosProductos = [];
+        let categorias = [];
+
+        // Cargar carta al iniciar
+        window.addEventListener('DOMContentLoaded', () => {
+            cargarCarta();
+
+            // Event listeners
+            document.getElementById('filtroCategoria').addEventListener('change', filtrarProductos);
+            document.getElementById('busqueda').addEventListener('input', filtrarProductos);
+        });
+
+        async function cargarCarta() {
+            showLoading(true);
+
+            try {
+                // ⚠️ IMPORTANTE: Incluir ID de empresa en la ruta (multitenant)
+                const response = await fetch(`${API_URL}/api/v1/productos/public/${ID_EMPRESA}/carta`);
+                const data = await response.json();
+
+                if (data.status === 'SUCCESS') {
+                    todosLosProductos = data.data;
+
+                    // Extraer categorías únicas
+                    const categoriasMap = new Map();
+                    todosLosProductos.forEach(p => {
+                        if (p.categoria) {
+                            categoriasMap.set(p.categoria.idCategoria, p.categoria);
+                        }
+                    });
+                    categorias = Array.from(categoriasMap.values());
+
+                    // Llenar select de categorías
+                    const selectCategoria = document.getElementById('filtroCategoria');
+                    categorias.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.idCategoria;
+                        option.textContent = cat.nombre;
+                        selectCategoria.appendChild(option);
+                    });
+
+                    // Mostrar estadísticas
+                    document.getElementById('totalProductos').textContent = todosLosProductos.length;
+                    document.getElementById('totalCategorias').textContent = categorias.length;
+                    document.getElementById('stats').style.display = 'flex';
+
+                    // Mostrar productos
+                    mostrarProductos(todosLosProductos);
+                } else {
+                    showError('Error al cargar la carta');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error de conexión. Verifica que el servidor esté ejecutándose.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function filtrarProductos() {
+            const categoriaSeleccionada = document.getElementById('filtroCategoria').value;
+            const busqueda = document.getElementById('busqueda').value.toLowerCase();
+
+            let productosFiltrados = todosLosProductos;
+
+            // Filtrar por categoría
+            if (categoriaSeleccionada) {
+                productosFiltrados = productosFiltrados.filter(p =>
+                    p.categoria && p.categoria.idCategoria == categoriaSeleccionada
+                );
+            }
+
+            // Filtrar por búsqueda
+            if (busqueda) {
+                productosFiltrados = productosFiltrados.filter(p =>
+                    p.nombre.toLowerCase().includes(busqueda) ||
+                    (p.descripcion && p.descripcion.toLowerCase().includes(busqueda))
+                );
+            }
+
+            mostrarProductos(productosFiltrados);
+        }
+
+        function mostrarProductos(productos) {
+            const container = document.getElementById('productos');
+            const emptyState = document.getElementById('emptyState');
+
+            if (productos.length === 0) {
+                container.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            container.innerHTML = productos.map(p => `
+                <div class="producto-card" onclick="verDetalle(${p.idProducto})">
+                    <img
+                        src="${p.imagenUrl || 'https://via.placeholder.com/300x200?text=Sin+Imagen'}"
+                        alt="${p.nombre}"
+                        class="producto-imagen"
+                        onerror="this.src='https://via.placeholder.com/300x200?text=Sin+Imagen'"
+                    >
+                    <div class="producto-info">
+                        ${p.categoria ? `<span class="producto-categoria">${p.categoria.nombre}</span>` : ''}
+                        <div class="producto-nombre">${p.nombre}</div>
+                        <div class="producto-descripcion">
+                            ${p.descripcion || 'Delicioso producto de nuestra carta'}
+                        </div>
+
+                        ${p.tiempoPreparacion ? `
+                            <div class="producto-tiempo">⏱️ ${p.tiempoPreparacion} min</div>
+                        ` : ''}
+
+                        <div>
+                            ${p.requierePreparacion ? '<span class="badge badge-preparacion">🍳 Se prepara al momento</span>' : ''}
+                            ${p.esAlcoholico ? '<span class="badge badge-alcoholico">🍷 Alcohólico</span>' : ''}
+                        </div>
+
+                        <div class="producto-footer">
+                            <div class="precio">S/ ${p.precio.toFixed(2)}</div>
+                            <button class="btn-agregar" onclick="event.stopPropagation(); agregarAlCarrito(${p.idProducto}, '${p.nombre}')">
+                                Agregar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function verDetalle(idProducto) {
+            const producto = todosLosProductos.find(p => p.idProducto === idProducto);
+            if (!producto) return;
+
+            alert(`
+🍽️ ${producto.nombre}
+
+${producto.descripcion || 'Sin descripción'}
+
+💰 Precio: S/ ${producto.precio.toFixed(2)}
+⏱️ Tiempo: ${producto.tiempoPreparacion || 'N/A'} minutos
+📦 Categoría: ${producto.categoria ? producto.categoria.nombre : 'Sin categoría'}
+🔥 Calorías: ${producto.calorias || 'N/A'}
+
+${producto.ingredientes ? '🥗 Ingredientes: ' + producto.ingredientes : ''}
+            `);
+        }
+
+        function agregarAlCarrito(idProducto, nombre) {
+            // Aquí puedes implementar la lógica del carrito
+            console.log('Agregado al carrito:', idProducto, nombre);
+
+            // Animación simple
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '✓ Agregado';
+            btn.style.background = '#4CAF50';
+
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 1500);
+
+            // Aquí podrías:
+            // - Guardar en localStorage
+            // - Actualizar contador del carrito
+            // - Enviar a un state management (Vuex, Redux, etc.)
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const container = document.getElementById('productos');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <h3>❌ ${message}</h3>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

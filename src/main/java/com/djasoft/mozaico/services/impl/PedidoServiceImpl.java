@@ -1,5 +1,9 @@
 package com.djasoft.mozaico.services.impl;
 
+import com.djasoft.mozaico.config.JwtAuthenticationFilter;
+import com.djasoft.mozaico.security.annotations.RequirePermission;
+import com.djasoft.mozaico.security.annotations.RequireCompanyContext;
+import com.djasoft.mozaico.security.annotations.Auditable;
 import com.djasoft.mozaico.domain.entities.Cliente;
 import com.djasoft.mozaico.domain.entities.DetallePedido;
 import com.djasoft.mozaico.domain.entities.Mesa;
@@ -52,6 +56,7 @@ public class PedidoServiceImpl implements PedidoService {
     private final ProductoRepository productoRepository;
     private final DetallePedidoRepository detallePedidoRepository;
     private final MesaService mesaService;
+    private final com.djasoft.mozaico.services.InventarioService inventarioService;
 
     // Tasa de impuestos y descuento (pueden ser configurables)
     private static final BigDecimal TAX_RATE = new BigDecimal("0.10"); // 10%
@@ -59,6 +64,8 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     @Transactional
+    @RequirePermission({"MANAGE_ORDERS", "ALL_PERMISSIONS"})
+    @Auditable(action = "CREATE", entity = "Pedido", description = "Crear nuevo pedido")
     public PedidoResponseDTO crearPedido(PedidoRequestDTO pedidoRequestDTO) {
         Cliente cliente = clienteRepository.findById(pedidoRequestDTO.getIdCliente())
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -72,10 +79,20 @@ public class PedidoServiceImpl implements PedidoService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Empleado (Usuario) no encontrado con el id: " + pedidoRequestDTO.getIdEmpleado()));
 
+        // Obtener usuario actual para trazabilidad
+        var currentUser = JwtAuthenticationFilter.getCurrentUser();
+
+        // Validar que el empleado asignado pertenezca a la misma empresa
+        if (!empleado.getEmpresa().getIdEmpresa().equals(currentUser.getEmpresa().getIdEmpresa())) {
+            throw new ResourceNotFoundException("Empleado no encontrado en tu empresa");
+        }
+
         Pedido nuevoPedido = Pedido.builder()
                 .cliente(cliente)
                 .mesa(mesa)
                 .empleado(empleado)
+                .usuarioCreacion(currentUser) // Trazabilidad: quién creó el pedido
+                .empresa(currentUser.getEmpresa()) // Contexto de empresa
                 .estado(pedidoRequestDTO.getEstado() != null ? pedidoRequestDTO.getEstado() : EstadoPedido.ABIERTO)
                 .tipoServicio(pedidoRequestDTO.getTipoServicio() != null ? pedidoRequestDTO.getTipoServicio()
                         : TipoServicio.MESA)
@@ -99,25 +116,49 @@ public class PedidoServiceImpl implements PedidoService {
 
     @Override
     @Transactional(readOnly = true)
+    @RequirePermission({"MANAGE_ORDERS", "VIEW_ORDERS", "ALL_PERMISSIONS"})
     public List<PedidoResponseDTO> obtenerTodosLosPedidos() {
+        // Solo mostrar pedidos de la empresa del usuario actual
+        var currentUser = JwtAuthenticationFilter.getCurrentUser();
+        Long empresaId = currentUser.getEmpresa().getIdEmpresa();
+
         return pedidoRepository.findAll().stream()
+                .filter(pedido -> pedido.getEmpresa().getIdEmpresa().equals(empresaId))
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
+    @RequirePermission({"MANAGE_ORDERS", "VIEW_ORDERS", "ALL_PERMISSIONS"})
+    @RequireCompanyContext
     public PedidoResponseDTO obtenerPedidoPorId(Integer id) {
-        return pedidoRepository.findById(id)
-                .map(this::mapToResponseDTO)
+        Pedido pedido = pedidoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con el id: " + id));
+
+        // Validar que el pedido pertenezca a la empresa del usuario actual
+        var currentUser = JwtAuthenticationFilter.getCurrentUser();
+        if (!pedido.getEmpresa().getIdEmpresa().equals(currentUser.getEmpresa().getIdEmpresa())) {
+            throw new ResourceNotFoundException("Pedido no encontrado");
+        }
+
+        return mapToResponseDTO(pedido);
     }
 
     @Override
     @Transactional
+    @RequirePermission({"MANAGE_ORDERS", "ALL_PERMISSIONS"})
+    @RequireCompanyContext
+    @Auditable(action = "UPDATE", entity = "Pedido", description = "Actualizar pedido")
     public PedidoResponseDTO actualizarPedido(Integer id, PedidoUpdateDTO pedidoUpdateDTO) {
         Pedido pedidoExistente = pedidoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con el id: " + id));
+
+        // Validar que el pedido pertenezca a la empresa del usuario actual
+        var currentUser = JwtAuthenticationFilter.getCurrentUser();
+        if (!pedidoExistente.getEmpresa().getIdEmpresa().equals(currentUser.getEmpresa().getIdEmpresa())) {
+            throw new ResourceNotFoundException("Pedido no encontrado");
+        }
 
         if (pedidoUpdateDTO.getIdCliente() != null) {
             Cliente cliente = clienteRepository.findById(pedidoUpdateDTO.getIdCliente())
@@ -290,6 +331,16 @@ public class PedidoServiceImpl implements PedidoService {
                     .build();
         }
 
+        UsuarioResponseDTO usuarioCreacionDTO = null;
+        if (pedido.getUsuarioCreacion() != null) {
+            usuarioCreacionDTO = UsuarioResponseDTO.builder()
+                    .idUsuario(pedido.getUsuarioCreacion().getIdUsuario())
+                    .nombre(pedido.getUsuarioCreacion().getNombre())
+                    .username(pedido.getUsuarioCreacion().getUsername())
+                    .tipoUsuario(pedido.getUsuarioCreacion().getTipoUsuario())
+                    .build();
+        }
+
         List<DetallePedidoResponseDTO> detallesDTO = detallePedidoRepository.findByPedido(pedido).stream()
                 .map(this::mapDetallePedidoToResponseDTO)
                 .collect(Collectors.toList());
@@ -299,6 +350,7 @@ public class PedidoServiceImpl implements PedidoService {
                 .cliente(clienteDTO)
                 .mesa(mesaDTO)
                 .empleado(empleadoDTO)
+                .usuarioCreacion(usuarioCreacionDTO) // Usuario que creó el pedido
                 .fechaPedido(pedido.getFechaPedido())
                 .estado(pedido.getEstado())
                 .tipoServicio(pedido.getTipoServicio())
@@ -358,11 +410,21 @@ public class PedidoServiceImpl implements PedidoService {
         Usuario empleado = usuarioRepository.findById(requestDTO.getIdEmpleado())
                 .orElseThrow(() -> new ResourceNotFoundException("Empleado no encontrado con el ID: " + requestDTO.getIdEmpleado()));
 
+        // Obtener usuario actual para trazabilidad
+        var currentUser = JwtAuthenticationFilter.getCurrentUser();
+
+        // Validar que el empleado asignado pertenezca a la misma empresa
+        if (!empleado.getEmpresa().getIdEmpresa().equals(currentUser.getEmpresa().getIdEmpresa())) {
+            throw new ResourceNotFoundException("Empleado no encontrado en tu empresa");
+        }
+
         // Crear el pedido principal
         Pedido pedido = Pedido.builder()
                 .cliente(cliente)
                 .mesa(mesa)
                 .empleado(empleado)
+                .usuarioCreacion(currentUser) // Trazabilidad: quién creó el pedido
+                .empresa(currentUser.getEmpresa()) // Contexto de empresa
                 .estado(EstadoPedido.ABIERTO)
                 .tipoServicio(requestDTO.getTipoServicio())
                 .observaciones(requestDTO.getObservaciones())
@@ -392,9 +454,14 @@ public class PedidoServiceImpl implements PedidoService {
                     .precioUnitario(precioUnitario)
                     .subtotal(subtotalDetalle)
                     .observaciones(detalleDTO.getObservaciones())
+                    .estado(EstadoDetallePedido.PEDIDO)
                     .build();
 
             detallePedidoRepository.save(detalle);
+
+            // Descontar del inventario
+            inventarioService.actualizarStockPorVenta(producto.getIdProducto(), detalleDTO.getCantidad());
+
             subtotalCalculado = subtotalCalculado.add(subtotalDetalle);
         }
 
@@ -478,6 +545,9 @@ public class PedidoServiceImpl implements PedidoService {
                 .build();
 
         DetallePedido detalleGuardado = detallePedidoRepository.save(detalle);
+
+        // Descontar del inventario
+        inventarioService.actualizarStockPorVenta(producto.getIdProducto(), requestDTO.getCantidad());
 
         // Recalcular totales del pedido
         recalcularTotalesPedido(idPedido);

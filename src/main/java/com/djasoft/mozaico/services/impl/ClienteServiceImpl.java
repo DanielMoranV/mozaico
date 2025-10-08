@@ -1,12 +1,15 @@
 package com.djasoft.mozaico.services.impl;
 
+import com.djasoft.mozaico.config.JwtAuthenticationFilter;
 import com.djasoft.mozaico.domain.entities.Cliente;
+import com.djasoft.mozaico.domain.entities.Usuario;
 import com.djasoft.mozaico.domain.repositories.ClienteRepository;
 import com.djasoft.mozaico.services.ClienteService;
 import com.djasoft.mozaico.web.dtos.ClienteRequestDTO;
 import com.djasoft.mozaico.web.dtos.ClienteResponseDTO;
 import com.djasoft.mozaico.web.dtos.ClienteUpdateDTO;
 import com.djasoft.mozaico.web.exceptions.ResourceNotFoundException;
+import com.djasoft.mozaico.web.exceptions.UnauthorizedException;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
@@ -26,14 +29,27 @@ public class ClienteServiceImpl implements ClienteService {
     @Override
     @Transactional
     public ClienteResponseDTO crearCliente(ClienteRequestDTO clienteRequestDTO) {
+        Usuario usuarioActual = JwtAuthenticationFilter.getCurrentUser();
+        if (usuarioActual == null) {
+            throw new UnauthorizedException("Usuario no autenticado");
+        }
+
         Cliente nuevoCliente = Cliente.builder()
                 .nombre(clienteRequestDTO.getNombre())
                 .apellido(clienteRequestDTO.getApellido())
                 .email(clienteRequestDTO.getEmail())
                 .telefono(clienteRequestDTO.getTelefono())
-                .fechaNacimiento(clienteRequestDTO.getFechaNacimiento())
                 .direccion(clienteRequestDTO.getDireccion())
+                .tipoPersona(clienteRequestDTO.getTipoPersona())
+                .tipoDocumento(clienteRequestDTO.getTipoDocumento())
+                .numeroDocumento(clienteRequestDTO.getNumeroDocumento())
+                .fechaNacimiento(clienteRequestDTO.getFechaNacimiento())
                 .preferenciasAlimentarias(clienteRequestDTO.getPreferenciasAlimentarias())
+                .razonSocial(clienteRequestDTO.getRazonSocial())
+                .nombreComercial(clienteRequestDTO.getNombreComercial())
+                .representanteLegal(clienteRequestDTO.getRepresentanteLegal())
+                .empresa(usuarioActual.getEmpresa())
+                .usuarioCreacion(usuarioActual)
                 .build();
 
         Cliente clienteGuardado = clienteRepository.save(nuevoCliente);
@@ -169,9 +185,15 @@ public class ClienteServiceImpl implements ClienteService {
                 .apellido(cliente.getApellido())
                 .email(cliente.getEmail())
                 .telefono(cliente.getTelefono())
-                .fechaNacimiento(cliente.getFechaNacimiento())
                 .direccion(cliente.getDireccion())
+                .tipoPersona(cliente.getTipoPersona())
+                .tipoDocumento(cliente.getTipoDocumento())
+                .numeroDocumento(cliente.getNumeroDocumento())
+                .fechaNacimiento(cliente.getFechaNacimiento())
                 .preferenciasAlimentarias(cliente.getPreferenciasAlimentarias())
+                .razonSocial(cliente.getRazonSocial())
+                .nombreComercial(cliente.getNombreComercial())
+                .representanteLegal(cliente.getRepresentanteLegal())
                 .puntosFidelidad(cliente.getPuntosFidelidad())
                 .fechaRegistro(cliente.getFechaRegistro())
                 .activo(cliente.getActivo())

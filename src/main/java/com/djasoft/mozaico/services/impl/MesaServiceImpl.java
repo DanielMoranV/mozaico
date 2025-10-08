@@ -202,6 +202,15 @@ public class MesaServiceImpl implements MesaService {
                     .map(this::mapToDetallePedidoBasicoResponseDTO)
                     .collect(Collectors.toList());
 
+        // Calcular el total dinámicamente si es null o 0
+        Double totalCalculado = pedido.getTotal() != null ? pedido.getTotal().doubleValue() : 0.0;
+        if (totalCalculado == 0.0 && !detalles.isEmpty()) {
+            totalCalculado = detalles.stream()
+                    .filter(detalle -> detalle.getSubtotal() != null)
+                    .mapToDouble(detalle -> detalle.getSubtotal().doubleValue())
+                    .sum();
+        }
+
         return MesaEstadoDetalladoResponseDTO.PedidoBasicoResponseDTO.builder()
                 .idPedido(pedido.getIdPedido())
                 .fechaPedido(pedido.getFechaPedido())
@@ -211,7 +220,7 @@ public class MesaServiceImpl implements MesaService {
                     pedido.getCliente().getNombre() + " " + pedido.getCliente().getApellido() :
                     "Cliente anónimo")
                 .empleado(pedido.getEmpleado() != null ? pedido.getEmpleado().getNombre() : "Sin asignar")
-                .total(pedido.getTotal() != null ? pedido.getTotal().doubleValue() : 0.0)
+                .total(totalCalculado)
                 .detalles(detallesDTO)
                 .build();
     }

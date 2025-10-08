@@ -43,4 +43,13 @@ public class Mesa {
     @CreationTimestamp
     @Column(name = "fecha_creacion", updatable = false)
     private LocalDateTime fechaCreacion;
+
+    // === AUDITORÍA Y SEGURIDAD ===
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_empresa", nullable = false)
+    private Empresa empresa;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario_creacion", nullable = false)
+    private Usuario usuarioCreacion;
 }

@@ -92,4 +92,58 @@ public class ProductoController {
         ProductoResponseDTO productoActualizado = productoService.updateProductImage(id, file);
         return ResponseEntity.ok(ApiResponse.success(productoActualizado, "Imagen del producto actualizada exitosamente"));
     }
+
+    /**
+     * Endpoint público para obtener la carta/menú de productos disponibles de una empresa
+     * GET /api/v1/productos/public/{slug}/carta
+     *
+     * Este endpoint NO requiere autenticación y muestra solo productos:
+     * - De la empresa especificada por slug único (multitenant seguro)
+     * - Disponibles (disponible = true)
+     * - Activos (estado = ACTIVO)
+     *
+     * Ideal para mostrar la carta a clientes en aplicaciones web/móviles y códigos QR
+     *
+     * @param slug Slug único de la empresa (ej: "restaurante-mozaico")
+     * @param idCategoria ID de categoría para filtrar (opcional)
+     * @return Lista de productos disponibles de la empresa
+     */
+    @GetMapping("/public/{slug}/carta")
+    public ResponseEntity<ApiResponse<List<ProductoResponseDTO>>> obtenerCartaPublica(
+            @PathVariable String slug,
+            @RequestParam(required = false) Long idCategoria) {
+
+        List<ProductoResponseDTO> productos = productoService.buscarProductosPorSlugEmpresa(
+                slug,
+                idCategoria,  // idCategoria (opcional para filtrar por categoría)
+                true,  // disponible = true (solo productos disponibles)
+                EstadoProducto.ACTIVO  // estado = ACTIVO
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(productos, "Carta de productos obtenida exitosamente"));
+    }
+
+    /**
+     * Endpoint público para obtener productos por categoría de una empresa
+     * GET /api/v1/productos/public/{slug}/carta/por-categoria
+     *
+     * Este endpoint NO requiere autenticación
+     * Agrupa los productos por categoría para una mejor visualización
+     *
+     * @param slug Slug único de la empresa (ej: "restaurante-mozaico")
+     * @return Lista de productos agrupados por categoría
+     */
+    @GetMapping("/public/{slug}/carta/por-categoria")
+    public ResponseEntity<ApiResponse<List<ProductoResponseDTO>>> obtenerCartaPorCategoria(
+            @PathVariable String slug) {
+
+        List<ProductoResponseDTO> productos = productoService.buscarProductosPorSlugEmpresa(
+                slug,
+                null,  // todas las categorías
+                true,  // solo disponibles
+                EstadoProducto.ACTIVO  // solo activos
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(productos, "Carta de productos por categoría obtenida exitosamente"));
+    }
 }

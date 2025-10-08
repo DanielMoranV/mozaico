@@ -4,6 +4,7 @@ import com.djasoft.mozaico.domain.enums.pago.EstadoPago;
 import com.djasoft.mozaico.services.PagoService;
 import com.djasoft.mozaico.web.dtos.PagoRequestDTO;
 import com.djasoft.mozaico.web.dtos.PagoResponseDTO;
+import com.djasoft.mozaico.web.dtos.PagoCompletoResponseDTO;
 import com.djasoft.mozaico.web.dtos.PagoUpdateDTO;
 import com.djasoft.mozaico.web.dtos.response.ApiResponse;
 import jakarta.validation.Valid;
@@ -27,6 +28,13 @@ public class PagoController {
     public ResponseEntity<ApiResponse<PagoResponseDTO>> crearPago(@Valid @RequestBody PagoRequestDTO requestDTO) {
         PagoResponseDTO nuevoPago = pagoService.crearPago(requestDTO);
         return new ResponseEntity<>(ApiResponse.created(nuevoPago, "Pago creado exitosamente"),
+                HttpStatus.CREATED);
+    }
+
+    @PostMapping("/completo")
+    public ResponseEntity<ApiResponse<PagoCompletoResponseDTO>> crearPagoCompleto(@Valid @RequestBody PagoRequestDTO requestDTO) {
+        PagoCompletoResponseDTO pagoCompleto = pagoService.crearPagoCompleto(requestDTO);
+        return new ResponseEntity<>(ApiResponse.created(pagoCompleto, "Pago y comprobante creados exitosamente"),
                 HttpStatus.CREATED);
     }
 

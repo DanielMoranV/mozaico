@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Impresión de Tickets - Mozaico</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .icon {
+            font-size: 18px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+
+        .info-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .info-box p {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .config-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px dashed #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎫 Sistema de Impresión de Tickets</h1>
+        <p class="subtitle">Mozaico Restaurant Management System</p>
+
+        <div id="alert" class="alert"></div>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #666;">Procesando...</p>
+        </div>
+
+        <!-- Configuración -->
+        <div class="config-section">
+            <h3 style="margin-bottom: 20px; color: #333;">⚙️ Configuración</h3>
+
+            <div class="form-group">
+                <label for="apiUrl">URL del API</label>
+                <input type="text" id="apiUrl" value="http://localhost:8091" placeholder="http://localhost:8091">
+            </div>
+
+            <div class="form-group">
+                <label for="username">Usuario</label>
+                <input type="text" id="username" value="dmoran" placeholder="Usuario">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" value="123456" placeholder="Contraseña">
+            </div>
+
+            <button class="btn-info" onclick="login()">
+                <span class="icon">🔐</span>
+                Iniciar Sesión
+            </button>
+        </div>
+
+        <!-- Opciones de Impresión -->
+        <div class="config-section">
+            <h3 style="margin-bottom: 20px; color: #333;">🖨️ Imprimir Ticket</h3>
+
+            <div class="form-group">
+                <label for="idComprobante">ID del Comprobante</label>
+                <input type="number" id="idComprobante" value="1" placeholder="1" min="1">
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-primary" onclick="imprimirTicketIframe()">
+                    <span class="icon">🖨️</span>
+                    Imprimir (iframe)
+                </button>
+
+                <button class="btn-secondary" onclick="imprimirTicketNuevaVentana()">
+                    <span class="icon">🪟</span>
+                    Imprimir (ventana)
+                </button>
+
+                <button class="btn-success" onclick="descargarTicket()">
+                    <span class="icon">⬇️</span>
+                    Descargar Ticket
+                </button>
+
+                <button class="btn-info" onclick="descargarComprobante()">
+                    <span class="icon">📄</span>
+                    Descargar A4
+                </button>
+            </div>
+        </div>
+
+        <!-- Información -->
+        <div class="info-box">
+            <h3>ℹ️ Información</h3>
+            <p>
+                <strong>Ticket PDF:</strong> Formato 80mm (térmico)<br>
+                <strong>Comprobante A4:</strong> Formato completo<br>
+                <strong>Auto-impresión:</strong> Requiere permisos del navegador
+            </p>
+        </div>
+    </div>
+
+    <script>
+        let token = null;
+
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.style.display = 'block';
+
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        async function login() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            showLoading(true);
+
+            try {
+                const response = await fetch(`${apiUrl}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'SUCCESS') {
+                    token = data.data.accessToken;
+                    showAlert('✅ Login exitoso - Token obtenido', 'success');
+                    console.log('Token:', token);
+                } else {
+                    showAlert('❌ Error: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showAlert('❌ Error de conexión: ' + error.message, 'error');
+                console.error(error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function getApiUrl() {
+            return document.getElementById('apiUrl').value;
+        }
+
+        function getIdComprobante() {
+            return document.getElementById('idComprobante').value;
+        }
+
+        async function imprimirTicketIframe() {
+            if (!token) {
+                showAlert('⚠️ Por favor, inicia sesión primero', 'error');
+                return;
+            }
+
+            const apiUrl = getApiUrl();
+            const idComprobante = getIdComprobante();
+
+            try {
+                showLoading(true);
+
+                const response = await fetch(
+                    `${apiUrl}/api/v1/comprobantes/${idComprobante}/ticket/imprimir`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Error al descargar el ticket');
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+
+                // Crear iframe para imprimir
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = url;
+
+                iframe.onload = function() {
+                    setTimeout(() => {
+                        try {
+                            iframe.contentWindow.print();
+                            showAlert('✅ Ticket enviado a impresión', 'success');
+
+                            setTimeout(() => {
+                                document.body.removeChild(iframe);
+                                URL.revokeObjectURL(url);
+                            }, 1000);
+                        } catch (error) {
+                            showAlert('⚠️ Error al imprimir. Intenta con la opción de ventana nueva', 'error');
+                            console.error(error);
+                        }
+                    }, 500);
+                };
+
+                document.body.appendChild(iframe);
+            } catch (error) {
+                showAlert('❌ Error: ' + error.message, 'error');
+                console.error(error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function imprimirTicketNuevaVentana() {
+            if (!token) {
+                showAlert('⚠️ Por favor, inicia sesión primero', 'error');
+                return;
+            }
+
+            const apiUrl = getApiUrl();
+            const idComprobante = getIdComprobante();
+            const url = `${apiUrl}/api/v1/comprobantes/${idComprobante}/ticket/imprimir`;
+
+            // Nota: Esta opción no puede enviar el header Authorization directamente
+            // Considera implementar un endpoint temporal con token en la URL
+            // o usar una solución de autenticación basada en cookies
+
+            const printWindow = window.open(url, '_blank', 'width=400,height=600');
+
+            if (printWindow) {
+                showAlert('ℹ️ Ventana de impresión abierta. Nota: Puede requerir autenticación', 'info');
+
+                printWindow.addEventListener('load', function() {
+                    setTimeout(() => {
+                        printWindow.print();
+                    }, 500);
+                });
+            } else {
+                showAlert('⚠️ Ventanas emergentes bloqueadas. Permite ventanas emergentes en tu navegador', 'error');
+            }
+        }
+
+        async function descargarTicket() {
+            if (!token) {
+                showAlert('⚠️ Por favor, inicia sesión primero', 'error');
+                return;
+            }
+
+            const apiUrl = getApiUrl();
+            const idComprobante = getIdComprobante();
+
+            try {
+                showLoading(true);
+
+                const response = await fetch(
+                    `${apiUrl}/api/v1/comprobantes/${idComprobante}/ticket`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Error al descargar el ticket');
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ticket_${idComprobante}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showAlert('✅ Ticket descargado exitosamente', 'success');
+            } catch (error) {
+                showAlert('❌ Error: ' + error.message, 'error');
+                console.error(error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function descargarComprobante() {
+            if (!token) {
+                showAlert('⚠️ Por favor, inicia sesión primero', 'error');
+                return;
+            }
+
+            const apiUrl = getApiUrl();
+            const idComprobante = getIdComprobante();
+
+            try {
+                showLoading(true);
+
+                const response = await fetch(
+                    `${apiUrl}/api/v1/comprobantes/${idComprobante}/pdf`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Error al descargar el comprobante');
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `comprobante_${idComprobante}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showAlert('✅ Comprobante descargado exitosamente', 'success');
+            } catch (error) {
+                showAlert('❌ Error: ' + error.message, 'error');
+                console.error(error);
+            } finally {
+                showLoading(false);
+            }
+        }
+    </script>
+</body>
+</html>

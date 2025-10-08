@@ -3,6 +3,7 @@ package com.djasoft.mozaico.services;
 import com.djasoft.mozaico.domain.enums.pago.EstadoPago;
 import com.djasoft.mozaico.web.dtos.PagoRequestDTO;
 import com.djasoft.mozaico.web.dtos.PagoResponseDTO;
+import com.djasoft.mozaico.web.dtos.PagoCompletoResponseDTO;
 import com.djasoft.mozaico.web.dtos.PagoUpdateDTO;
 
 import java.time.LocalDateTime;
@@ -11,6 +12,8 @@ import java.util.List;
 public interface PagoService {
 
     PagoResponseDTO crearPago(PagoRequestDTO pagoRequestDTO);
+
+    PagoCompletoResponseDTO crearPagoCompleto(PagoRequestDTO pagoRequestDTO);
 
     List<PagoResponseDTO> obtenerTodosLosPagos();
 

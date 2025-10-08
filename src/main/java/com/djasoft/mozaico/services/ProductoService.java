@@ -36,4 +36,34 @@ public interface ProductoService {
     ProductoResponseDTO desactivarProducto(Long id);
 
     ProductoResponseDTO updateProductImage(Long id, org.springframework.web.multipart.MultipartFile file);
+
+    /**
+     * Buscar productos de una empresa específica por ID (multitenant)
+     * @param idEmpresa ID de la empresa
+     * @param idCategoria ID de categoría (opcional)
+     * @param disponible Si el producto está disponible
+     * @param estado Estado del producto
+     * @return Lista de productos que cumplen los criterios
+     */
+    List<ProductoResponseDTO> buscarProductosPorEmpresa(
+            Integer idEmpresa,
+            Long idCategoria,
+            Boolean disponible,
+            EstadoProducto estado
+    );
+
+    /**
+     * Buscar productos de una empresa por su slug único (para carta pública)
+     * @param slug Slug único de la empresa
+     * @param idCategoria ID de categoría (opcional)
+     * @param disponible Si el producto está disponible
+     * @param estado Estado del producto
+     * @return Lista de productos que cumplen los criterios
+     */
+    List<ProductoResponseDTO> buscarProductosPorSlugEmpresa(
+            String slug,
+            Long idCategoria,
+            Boolean disponible,
+            EstadoProducto estado
+    );
 }

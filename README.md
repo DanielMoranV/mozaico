@@ -1,74 +1,252 @@
-# Mozaico - Sistema de Gestión de Restaurante
+# 🏪 Sistema Mozaico - Gestión de Restaurantes
 
-Este proyecto es un sistema de gestión de restaurante que abarca diversas funcionalidades para la administración eficiente de las operaciones diarias.
+## 📖 Descripción
+Sistema completo de gestión para restaurantes con configuración empresarial flexible, desde negocios informales hasta facturación electrónica completa según normativa SUNAT 2024.
 
-## 🚀 Funcionalidades Implementadas
+## ✨ Características Principales
 
-Hasta la fecha, se han implementado las siguientes funcionalidades, incluyendo sus respectivos módulos CRUD (Crear, Leer, Actualizar, Eliminar), búsqueda avanzada, y lógica de negocio integrada:
+### 🏢 **Sistema de Empresa Flexible**
+- ✅ **Negocio Informal**: Opera sin RUC, emite tickets internos sin IGV
+- ✅ **Negocio Formal**: Con RUC, boletas manuales con IGV
+- ✅ **Facturación Electrónica**: Comprobantes electrónicos SUNAT
+- ✅ **Migración Gradual**: Evolución sin pérdida de datos
 
-### **Módulos CRUD Completos con Búsqueda Avanzada:**
+### 🎯 **Configuración Actual**
+```yaml
+Empresa: "Restaurante Mozaico"
+Tipo: Negocio Informal
+IGV: No aplica
+Comprobantes: Solo tickets internos
+```
 
-*   **Categorías:** Gestión de categorías de productos.
-*   **Clientes:** Gestión de la información de los clientes.
-*   **Mesas:** Gestión de las mesas del restaurante.
-*   **Productos:** Gestión de los productos ofrecidos (con subida de imágenes).
-*   **Métodos de Pago:** Gestión de las diferentes formas de pago aceptadas.
-*   **Proveedores:** Gestión de la información de los proveedores.
-*   **Inventario:** Gestión del stock de productos.
-*   **Pedidos:** Gestión de los pedidos de los clientes.
-*   **Detalles de Pedido:** Gestión de los ítems individuales dentro de un pedido.
-*   **Pagos:** Gestión de los pagos asociados a los pedidos.
-*   **Compras/Suministros:** Gestión de las compras realizadas a proveedores.
-*   **Detalles de Compras:** Gestión de los ítems individuales dentro de una compra.
-*   **Reservas:** Gestión de las reservas de mesas.
+### 🧮 **Módulos CRUD Completos con Búsqueda Avanzada:**
 
-### **Lógica de Negocio Integrada:**
+*   **🏢 Sistema de Empresa:** Configuración empresarial flexible con validación automática de IGV
+*   **📋 Categorías:** Gestión de categorías de productos organizadas
+*   **👥 Clientes:** Gestión integral de información de clientes
+*   **🪑 Mesas:** Gestión de mesas con control de estados y ocupación
+*   **🛍️ Productos:** Catálogo completo con imágenes y precios dinámicos
+*   **💳 Métodos de Pago:** Gestión de formas de pago (efectivo, tarjetas, transferencias)
+*   **🏭 Proveedores:** Gestión de proveedores con datos completos de contacto
+*   **📦 Inventario:** Control de stock con alertas automáticas y costos
+*   **🍽️ Pedidos:** Gestión integral con cálculo automático de totales e IGV
+*   **📝 Detalles de Pedido:** Gestión de ítems individuales con estados de preparación
+*   **💰 Pagos:** Procesamiento de pagos con validación de empresa
+*   **🛒 Compras/Suministros:** Gestión de adquisiciones a proveedores
+*   **📋 Detalles de Compras:** Control detallado de productos adquiridos
+*   **📅 Reservas:** Sistema de reservas con validación de disponibilidad
+*   **🍴 Menús Especiales:** Combos y ofertas con precios especiales
 
-*   **Flujo de Pedidos Integrado:**
-    *   **Creación de Pedidos:** Vinculación de clientes, mesas y usuarios (empleados) al crear un pedido.
-    *   **Cálculo de Totales:** Recálculo automático de `subtotal`, `impuestos`, `descuento` y `total` del pedido cada vez que se modifican sus `DetallePedidos`.
-    *   **Actualización de Inventario por Venta:** El `stock_actual` en `Inventario` se ajusta automáticamente al añadir, modificar o eliminar `DetallePedidos`.
-    *   **Actualización de Estado de Mesa:** El estado de la `Mesa` cambia a `OCUPADA` cuando se crea un pedido para ella (si es de tipo MESA) y vuelve a `DISPONIBLE` cuando el pedido se marca como `ENTREGADO` o `CANCELADO`.
-*   **Integración de Pagos:**
-    *   **Actualización de Estado de Pedido:** Cuando un `Pago` se marca como `COMPLETADO`, el estado del `Pedido` asociado se actualiza automáticamente a `ENTREGADO`.
-*   **Gestión de Inventario Avanzada:**
-    *   **Actualización de Stock por Compra:** El `stock_actual` en `Inventario` se incrementa automáticamente al añadir, modificar o eliminar `DetalleCompras`.
-    *   **Alertas de Stock Bajo:** Lógica básica implementada para mostrar alertas por consola cuando el stock de un producto cae por debajo de su mínimo.
-*   **Gestión de Compras Integrada:**
-    *   **Actualización de Inventario por Recepción:** Cuando el estado de una `Compra` cambia a `RECIBIDA`, el `stock_actual` en `Inventario` se actualiza automáticamente con los productos de sus `DetalleCompras`.
-*   **Gestión de Reservas:**
-    *   **Validación de Disponibilidad:** Lógica para verificar la disponibilidad de una mesa al crear o actualizar una reserva, evitando solapamientos.
+### 🔧 **Lógica de Negocio Integrada:**
+
+*   **🏢 Validación Empresarial Automática:**
+    *   **Configuración Dinámica:** Consulta automática de capacidades de emisión
+    *   **Cálculo de IGV:** Aplicación automática según configuración empresarial
+    *   **Mensajes al Cliente:** Notificación clara sobre tipos de comprobante disponibles
+    *   **Validaciones de Coherencia:** Detección automática de inconsistencias de configuración
+
+*   **🍽️ Flujo de Pedidos Integrado:**
+    *   **Creación de Pedidos:** Vinculación de clientes, mesas y usuarios (empleados)
+    *   **Cálculo Dinámico de Totales:** Recálculo automático considerando configuración de IGV empresarial
+    *   **Actualización de Inventario:** Ajuste automático de stock por ventas
+    *   **Control de Estado de Mesa:** Cambio automático entre DISPONIBLE/OCUPADA/RESERVADA
+
+*   **💰 Integración de Pagos:**
+    *   **Validación de Empresa:** Verificación de capacidades antes de procesar pagos
+    *   **Actualización de Estado:** Cambio automático de estado del pedido al completar pago
+    *   **Múltiples Métodos:** Soporte para efectivo, tarjetas y transferencias digitales
+
+*   **📦 Gestión de Inventario Avanzada:**
+    *   **Actualización por Compras:** Incremento automático de stock al recibir mercancía
+    *   **Alertas Inteligentes:** Notificaciones de stock bajo con recomendaciones
+    *   **Control de Costos:** Seguimiento de costos unitarios y márgenes
+
+*   **🛒 Gestión de Compras Integrada:**
+    *   **Flujo Completo:** Desde solicitud hasta recepción de mercancía
+    *   **Actualización Automática:** Incremento de inventario al marcar como RECIBIDA
+    *   **Control de Proveedores:** Gestión integral de cadena de suministro
+
+*   **📅 Gestión de Reservas:**
+    *   **Validación de Disponibilidad:** Prevención de solapamientos automática
+    *   **Estados Dinámicos:** Control de confirmación, cancelación y finalización
+
+---
+
+## 🚀 Inicio Rápido
+
+### **Prerrequisitos**
+- Java 17+
+- Maven 3.6+
+- MySQL 8.0+
+- Git
+
+### **Instalación**
+```bash
+# Clonar repositorio
+git clone https://github.com/tu-usuario/mozaico.git
+cd mozaico
+
+# Configurar base de datos en application.properties
+spring.datasource.url=jdbc:mysql://localhost:3306/mozaico
+spring.datasource.username=tu_usuario
+spring.datasource.password=tu_password
+
+# Ejecutar aplicación
+mvn spring-boot:run
+```
+
+### **Primera Ejecución**
+Al iniciar, el sistema carga automáticamente datos de prueba:
+```
+✅ Carga de datos completada exitosamente!
+📊 Resumen de datos cargados:
+   - 1 Empresa configurada (INFORMAL - Sin RUC)
+   - 5 Categorías de productos
+   - 16 Productos en catálogo
+   - 10 Mesas distribuidas
+   - 8 Empleados registrados
+   - 6 Métodos de pago
+🎟️ CONFIGURACIÓN: Negocio informal - Solo emite tickets sin IGV
+```
+
+---
+
+## 🎮 **API Endpoints**
+
+### **Validación de Empresa**
+```http
+GET /api/v1/empresa/validacion/igv           # Validación completa
+GET /api/v1/empresa/validacion/aplica-igv    # Verificación rápida IGV
+GET /api/v1/empresa/validacion/mensaje-cliente # Mensaje para cliente
+```
+
+### **Ejemplo de Respuesta**
+```json
+{
+  "aplicaIgv": false,
+  "tipoOperacion": "TICKET_SIMPLE",
+  "mensajeCliente": "🎟️ Esta empresa opera como negocio informal. Los comprobantes emitidos son tickets internos sin valor tributario y NO incluyen IGV.",
+  "comprobantesPermitidos": ["Ticket interno sin valor tributario"],
+  "limitaciones": [
+    "Solo puede emitir tickets internos sin valor tributario",
+    "No puede incluir IGV en los comprobantes"
+  ]
+}
+```
+
+---
+
+## 📱 **Integración Frontend**
+
+### **Verificación de Configuración**
+```javascript
+// Obtener configuración al cargar
+const validacion = await fetch('/api/v1/empresa/validacion/igv')
+  .then(r => r.json());
+
+// Configurar interfaz según capacidades
+configurarCalculadora(validacion.aplicaIgv, validacion.porcentajeIgv);
+mostrarMensajeCliente(validacion.mensajeCliente);
+```
+
+### **Calculadora de Precios**
+```javascript
+class PriceCalculator {
+  async initialize() {
+    const config = await fetch('/api/v1/empresa/validacion/igv').then(r => r.json());
+    this.aplicaIgv = config.aplicaIgv;
+    this.porcentajeIgv = config.porcentajeIgv;
+  }
+  
+  calculate(subtotal) {
+    const igv = this.aplicaIgv ? subtotal * (this.porcentajeIgv / 100) : 0;
+    return { subtotal, igv, total: subtotal + igv };
+  }
+}
+```
+
+---
+
+## 📚 **Documentación**
+
+### **Documentos Disponibles**
+- 📋 **[CHANGELOG.md](CHANGELOG.md)** - Historial de cambios y nuevas funcionalidades
+- 🏢 **[EMPRESA_SISTEMA.md](docs/EMPRESA_SISTEMA.md)** - Documentación técnica del sistema de empresa
+- 📚 **[API_REFERENCE.md](docs/API_REFERENCE.md)** - Referencia completa de la API
+
+---
 
 ## 🚧 Funcionalidades Pendientes y Posibles Mejoras
 
-Estas son las áreas que aún no están cubiertas o que podrían ser mejoradas para una gestión más completa del restaurante:
+### **🔒 Prioridad Alta:**
+1.  **Roles y Permisos de Usuario (RBAC):** Sistema robusto de control de acceso por roles
+2.  **Flujo de Cocina/Preparación (KDS):** Panel para gestión de pedidos en cocina
+3.  **Dashboard Empresarial:** Interfaz para cambiar configuración de empresa (informal ↔ formal)
 
-1.  **Roles y Permisos de Usuario (RBAC):** Implementación de un sistema robusto de control de acceso basado en roles para restringir las acciones de los usuarios (empleados) según su `TipoUsuario`.
-2.  **Flujo de Cocina/Preparación (KDS):** Desarrollo de un sistema para gestionar el ciclo de vida de los ítems de un pedido en la cocina (ej. panel de visualización para cocineros, marcaje de ítems como 'en preparación', 'listo').
-3.  **Gestión de Menús:** Creación de una entidad o lógica para agrupar productos en "menús" (ej. menú del día, ofertas especiales) y gestionar su disponibilidad y precios.
-4.  **Promociones y Descuentos Avanzados:** Implementación de un motor de reglas para aplicar descuentos y promociones más complejos (ej. 2x1, descuentos por volumen, cupones).
-5.  **Alertas de Inventario Proactivas:** Integración de las alertas de stock bajo con sistemas de notificación (email, SMS, notificaciones push) en lugar de solo por consola.
-6.  **Reabastecimiento Automático:** Lógica para generar automáticamente sugerencias u órdenes de compra a proveedores cuando el stock de un producto cae por debajo de su nivel mínimo.
-7.  **Reportes y Análisis:** Desarrollo de módulos para generar reportes de ventas (diarias, semanales, mensuales), productos más vendidos, rendimiento de empleados, etc.
-8.  **Gestión de Turnos/Horarios de Empleados:** Módulo para la planificación y gestión de los horarios de trabajo de los empleados.
+### **⚡ Prioridad Media:**
+4.  **Alertas de Inventario Proactivas:** Notificaciones por email/SMS de stock bajo
+5.  **Facturación Electrónica Real:** Integración completa con proveedores OSE/SUNAT
+6.  **Reportes Avanzados:** Dashboard con métricas de ventas y rendimiento
 
-## 🎯 Recomendaciones y Prioridades
+### **📈 Prioridad Baja (Futuro):**
+7.  **Promociones y Descuentos Avanzados:** Motor de reglas para ofertas complejas
+8.  **Reabastecimiento Automático:** Sugerencias automáticas de compra
+9.  **Gestión de Turnos:** Planificación de horarios de empleados
+10. **App Móvil:** Aplicación para tablets y smartphones
 
-Para continuar desarrollando el sistema de manera efectiva, sugiero la siguiente priorización:
+---
 
-### **Prioridad Alta:**
+## 🔧 **Configuración Avanzada**
 
-*   **1. Roles y Permisos de Usuario (RBAC):** Es fundamental para la seguridad y la integridad del sistema. Define quién puede hacer qué, lo cual es crítico en un entorno multiusuario como un restaurante.
-*   **2. Flujo de Cocina/Preparación (KDS):** Es una funcionalidad central para la operación diaria del restaurante, mejorando la eficiencia en la preparación y entrega de pedidos.
+### **Tipos de Empresa Soportados**
+```java
+TICKET_SIMPLE          // Solo tickets internos (actual)
+BOLETA_MANUAL          // Boletas manuales con IGV
+FACTURACION_ELECTRONICA // Comprobantes electrónicos SUNAT
+MIXTO                  // Combinación de tipos
+```
 
-### **Prioridad Media:**
+### **Migración de Configuración**
+```java
+// Ejemplo: De informal a formal
+empresa.setAplicaIgv(true);
+empresa.setTipoOperacion(TipoOperacion.BOLETA_MANUAL);
+// Crear DatosFacturacion con RUC
+```
 
-*   **3. Alertas de Inventario Proactivas:** Mejorar las alertas de stock bajo con notificaciones reales es vital para evitar la falta de productos y optimizar las compras.
-*   **4. Gestión de Menús:** Permite una presentación más flexible y atractiva de los productos a los clientes, y facilita la gestión de ofertas.
+---
 
-### **Prioridad Baja (pero importantes a largo plazo):**
+## 🧪 **Testing**
 
-*   **5. Promociones y Descuentos Avanzados:** Para estrategias de marketing y fidelización de clientes.
-*   **6. Reabastecimiento Automático:** Optimiza la gestión de compras y reduce el trabajo manual.
-*   **7. Reportes y Análisis:** Esencial para la toma de decisiones estratégicas y la evaluación del rendimiento del negocio.
-*   **8. Gestión de Turnos/Horarios de Empleados:** Para una administración completa del personal.
+### **Ejecutar Tests**
+```bash
+# Tests unitarios
+mvn test
+
+# Tests de integración
+mvn test -Dtest=**/*IntegrationTest
+
+# Verificar API
+curl http://localhost:8080/api/v1/empresa/validacion/igv
+```
+
+---
+
+## 🤝 **Contribuir**
+
+1. Fork del repositorio
+2. Crear rama feature: `git checkout -b feature/nueva-funcionalidad`
+3. Commits descriptivos
+4. Push y crear Pull Request
+
+---
+
+## 📞 **Soporte**
+
+- 📧 Email: soporte@mozaico.com
+- 📖 [Documentación Completa](docs/)
+- 🐛 [Reportar Bugs](issues/)
+
+---
+
+**🎯 ¡Mozaico - Gestión de restaurantes desde informal hasta empresarial!**

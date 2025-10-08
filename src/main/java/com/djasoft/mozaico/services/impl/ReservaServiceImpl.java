@@ -1,5 +1,6 @@
 package com.djasoft.mozaico.services.impl;
 
+import com.djasoft.mozaico.config.JwtAuthenticationFilter;
 import com.djasoft.mozaico.domain.entities.Cliente;
 import com.djasoft.mozaico.domain.entities.Mesa;
 import com.djasoft.mozaico.domain.entities.Reserva;
@@ -50,6 +51,9 @@ public class ReservaServiceImpl implements ReservaService {
         // Validar disponibilidad de la mesa
         validarDisponibilidadMesa(mesa, reservaRequestDTO.getFechaHoraReserva(), null);
 
+        // Obtener usuario actual para trazabilidad
+        var currentUser = JwtAuthenticationFilter.getCurrentUser();
+
         Reserva nuevaReserva = Reserva.builder()
                 .cliente(cliente)
                 .mesa(mesa)
@@ -57,6 +61,8 @@ public class ReservaServiceImpl implements ReservaService {
                 .numeroPersonas(reservaRequestDTO.getNumeroPersonas())
                 .estado(reservaRequestDTO.getEstado() != null ? reservaRequestDTO.getEstado() : EstadoReserva.PENDIENTE)
                 .observaciones(reservaRequestDTO.getObservaciones())
+                .usuarioCreacion(currentUser) // Trazabilidad: quién creó la reserva
+                .empresa(currentUser.getEmpresa()) // Contexto de empresa
                 .build();
 
         Reserva reservaGuardada = reservaRepository.save(nuevaReserva);
@@ -66,7 +72,12 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     @Transactional(readOnly = true)
     public List<ReservaResponseDTO> obtenerTodasLasReservas() {
+        // Solo mostrar reservas de la empresa del usuario actual
+        var currentUser = JwtAuthenticationFilter.getCurrentUser();
+        Long empresaId = currentUser.getEmpresa().getIdEmpresa();
+
         return reservaRepository.findAll().stream()
+                .filter(reserva -> reserva.getEmpresa().getIdEmpresa().equals(empresaId))
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }
@@ -74,9 +85,16 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     @Transactional(readOnly = true)
     public ReservaResponseDTO obtenerReservaPorId(Integer id) {
-        return reservaRepository.findById(id)
-                .map(this::mapToResponseDTO)
+        Reserva reserva = reservaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reserva no encontrada con el id: " + id));
+
+        // Validar que la reserva pertenezca a la empresa del usuario actual
+        var currentUser = JwtAuthenticationFilter.getCurrentUser();
+        if (!reserva.getEmpresa().getIdEmpresa().equals(currentUser.getEmpresa().getIdEmpresa())) {
+            throw new ResourceNotFoundException("Reserva no encontrada");
+        }
+
+        return mapToResponseDTO(reserva);
     }
 
     @Override
@@ -84,6 +102,12 @@ public class ReservaServiceImpl implements ReservaService {
     public ReservaResponseDTO actualizarReserva(Integer id, ReservaUpdateDTO reservaUpdateDTO) {
         Reserva reservaExistente = reservaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reserva no encontrada con el id: " + id));
+
+        // Validar que la reserva pertenezca a la empresa del usuario actual
+        var currentUser = JwtAuthenticationFilter.getCurrentUser();
+        if (!reservaExistente.getEmpresa().getIdEmpresa().equals(currentUser.getEmpresa().getIdEmpresa())) {
+            throw new ResourceNotFoundException("Reserva no encontrada");
+        }
 
         if (reservaUpdateDTO.getIdCliente() != null) {
             Cliente cliente = clienteRepository.findById(reservaUpdateDTO.getIdCliente())

@@ -25,4 +25,13 @@ public class MetodoPago {
     @Builder.Default
     @Column(name = "activo")
     private Boolean activo = true;
+
+    // === AUDITORÍA Y SEGURIDAD ===
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_empresa", nullable = false)
+    private Empresa empresa;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario_creacion", nullable = false)
+    private Usuario usuarioCreacion;
 }

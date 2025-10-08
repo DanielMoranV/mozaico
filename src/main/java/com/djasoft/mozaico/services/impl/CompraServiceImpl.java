@@ -1,12 +1,17 @@
 package com.djasoft.mozaico.services.impl;
 
+import com.djasoft.mozaico.config.JwtAuthenticationFilter;
 import com.djasoft.mozaico.domain.entities.DetalleCompra;
+import com.djasoft.mozaico.domain.entities.Usuario;
 import com.djasoft.mozaico.domain.repositories.DetalleCompraRepository;
 import com.djasoft.mozaico.domain.entities.Compra;
 import com.djasoft.mozaico.domain.entities.Proveedor;
 import com.djasoft.mozaico.domain.enums.compra.EstadoCompra;
 import com.djasoft.mozaico.domain.repositories.CompraRepository;
 import com.djasoft.mozaico.domain.repositories.ProveedorRepository;
+import com.djasoft.mozaico.security.annotations.Auditable;
+import com.djasoft.mozaico.security.annotations.RequireCompanyContext;
+import com.djasoft.mozaico.security.annotations.RequirePermission;
 import com.djasoft.mozaico.services.CompraService;
 import com.djasoft.mozaico.services.InventarioService;
 import com.djasoft.mozaico.web.dtos.CompraRequestDTO;
@@ -14,6 +19,7 @@ import com.djasoft.mozaico.web.dtos.CompraResponseDTO;
 import com.djasoft.mozaico.web.dtos.CompraUpdateDTO;
 import com.djasoft.mozaico.web.dtos.ProveedorResponseDTO;
 import com.djasoft.mozaico.web.exceptions.ResourceNotFoundException;
+import com.djasoft.mozaico.web.exceptions.UnauthorizedException;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
@@ -28,6 +34,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@RequireCompanyContext
 public class CompraServiceImpl implements CompraService {
 
     private final CompraRepository compraRepository;
@@ -37,9 +44,21 @@ public class CompraServiceImpl implements CompraService {
 
     @Override
     @Transactional
+    @RequirePermission({"MANAGE_PURCHASES", "ALL_PERMISSIONS"})
+    @Auditable(action = "CREAR_COMPRA", entity = "Compra")
     public CompraResponseDTO crearCompra(CompraRequestDTO compraRequestDTO) {
+        Usuario currentUser = JwtAuthenticationFilter.getCurrentUser();
+        if (currentUser == null) {
+            throw new UnauthorizedException("Usuario no autenticado");
+        }
+
         Proveedor proveedor = proveedorRepository.findById(compraRequestDTO.getIdProveedor())
                 .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado con el id: " + compraRequestDTO.getIdProveedor()));
+
+        // Validar que el proveedor pertenece a la empresa del usuario
+        if (!proveedor.getEmpresa().getIdEmpresa().equals(currentUser.getEmpresa().getIdEmpresa())) {
+            throw new UnauthorizedException("No tiene permisos para acceder a este proveedor");
+        }
 
         Compra nuevaCompra = Compra.builder()
                 .proveedor(proveedor)
@@ -47,6 +66,8 @@ public class CompraServiceImpl implements CompraService {
                 .total(compraRequestDTO.getTotal())
                 .estado(compraRequestDTO.getEstado() != null ? compraRequestDTO.getEstado() : EstadoCompra.PENDIENTE)
                 .observaciones(compraRequestDTO.getObservaciones())
+                .usuarioCreacion(currentUser)
+                .empresa(currentUser.getEmpresa())
                 .build();
 
         Compra compraGuardada = compraRepository.save(nuevaCompra);
@@ -55,29 +76,66 @@ public class CompraServiceImpl implements CompraService {
 
     @Override
     @Transactional(readOnly = true)
+    @RequirePermission({"VIEW_PURCHASES", "MANAGE_PURCHASES", "ALL_PERMISSIONS"})
     public List<CompraResponseDTO> obtenerTodasLasCompras() {
+        Usuario currentUser = JwtAuthenticationFilter.getCurrentUser();
+        if (currentUser == null) {
+            throw new UnauthorizedException("Usuario no autenticado");
+        }
+
         return compraRepository.findAll().stream()
+                .filter(compra -> compra.getEmpresa().getIdEmpresa().equals(currentUser.getEmpresa().getIdEmpresa()))
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
+    @RequirePermission({"VIEW_PURCHASES", "MANAGE_PURCHASES", "ALL_PERMISSIONS"})
     public CompraResponseDTO obtenerCompraPorId(Integer id) {
-        return compraRepository.findById(id)
-                .map(this::mapToResponseDTO)
+        Usuario currentUser = JwtAuthenticationFilter.getCurrentUser();
+        if (currentUser == null) {
+            throw new UnauthorizedException("Usuario no autenticado");
+        }
+
+        Compra compra = compraRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Compra no encontrada con el id: " + id));
+
+        // Validar que la compra pertenece a la empresa del usuario
+        if (!compra.getEmpresa().getIdEmpresa().equals(currentUser.getEmpresa().getIdEmpresa())) {
+            throw new UnauthorizedException("No tiene permisos para acceder a esta compra");
+        }
+
+        return mapToResponseDTO(compra);
     }
 
     @Override
     @Transactional
+    @RequirePermission({"MANAGE_PURCHASES", "ALL_PERMISSIONS"})
+    @Auditable(action = "ACTUALIZAR_COMPRA", entity = "Compra")
     public CompraResponseDTO actualizarCompra(Integer id, CompraUpdateDTO compraUpdateDTO) {
+        Usuario currentUser = JwtAuthenticationFilter.getCurrentUser();
+        if (currentUser == null) {
+            throw new UnauthorizedException("Usuario no autenticado");
+        }
+
         Compra compraExistente = compraRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Compra no encontrada con el id: " + id));
+
+        // Validar que la compra pertenece a la empresa del usuario
+        if (!compraExistente.getEmpresa().getIdEmpresa().equals(currentUser.getEmpresa().getIdEmpresa())) {
+            throw new UnauthorizedException("No tiene permisos para modificar esta compra");
+        }
 
         if (compraUpdateDTO.getIdProveedor() != null) {
             Proveedor proveedor = proveedorRepository.findById(compraUpdateDTO.getIdProveedor())
                     .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado con el id: " + compraUpdateDTO.getIdProveedor()));
+
+            // Validar que el proveedor pertenece a la empresa del usuario
+            if (!proveedor.getEmpresa().getIdEmpresa().equals(currentUser.getEmpresa().getIdEmpresa())) {
+                throw new UnauthorizedException("No tiene permisos para usar este proveedor");
+            }
+
             compraExistente.setProveedor(proveedor);
         }
         if (compraUpdateDTO.getFechaCompra() != null) {

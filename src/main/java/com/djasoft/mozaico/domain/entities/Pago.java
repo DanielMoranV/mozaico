@@ -32,6 +32,15 @@ public class Pago {
     @JoinColumn(name = "id_metodo")
     private MetodoPago metodoPago;
 
+    // === AUDITORÍA Y SEGURIDAD ===
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario_creacion", nullable = false)
+    private Usuario usuarioCreacion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_empresa", nullable = false)
+    private Empresa empresa;
+
     @Column(name = "monto", nullable = false, precision = 10, scale = 2)
     private BigDecimal monto;
 

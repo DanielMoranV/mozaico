@@ -20,6 +20,7 @@ public class PedidoResponseDTO {
     private ClienteResponseDTO cliente;
     private MesaResponseDTO mesa;
     private UsuarioResponseDTO empleado;
+    private UsuarioResponseDTO usuarioCreacion; // Usuario que creó el pedido
     private LocalDateTime fechaPedido;
     private EstadoPedido estado;
     private TipoServicio tipoServicio;

@@ -37,6 +37,15 @@ public class Pedido {
     @JoinColumn(name = "id_empleado", referencedColumnName = "id_usuario")
     private Usuario empleado;
 
+    // === AUDITORÍA Y SEGURIDAD ===
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario_creacion", nullable = false)
+    private Usuario usuarioCreacion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_empresa", nullable = false)
+    private Empresa empresa;
+
     @CreationTimestamp
     @Column(name = "fecha_pedido", updatable = false)
     private LocalDateTime fechaPedido;

@@ -1,5 +1,5 @@
 # Añadir gestion de estado de preparacion en el modulo post
 # añadir gestion de comanda para cocinaro
-# probar la carta con qr y url
+# probar la carta con qr y url----
 # Crear panel de administracion de empresas
 # Revisar la logica de impresion y generacion de comprobantes ---

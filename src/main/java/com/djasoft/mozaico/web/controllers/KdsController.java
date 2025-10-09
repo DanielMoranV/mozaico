@@ -18,9 +18,18 @@ public class KdsController {
     private final DetallePedidoService detallePedidoService;
 
     @GetMapping("/detalles")
-    public ResponseEntity<ApiResponse<List<DetallePedidoResponseDTO>>> obtenerDetallesPorEstado(@RequestParam("estado") String estado) {
+    public ResponseEntity<ApiResponse<List<DetallePedidoResponseDTO>>> obtenerDetallesPorEstado(
+            @RequestParam("estado") String estado,
+            @RequestParam(value = "requierePreparacion", defaultValue = "true") Boolean requierePreparacion) {
         EstadoDetallePedido estadoEnum = EstadoDetallePedido.valueOf(estado.toUpperCase());
-        List<DetallePedidoResponseDTO> detalles = detallePedidoService.obtenerDetallesPorEstado(estadoEnum);
+
+        List<DetallePedidoResponseDTO> detalles;
+        if (requierePreparacion) {
+            detalles = detallePedidoService.obtenerDetallesKdsQueRequierenPreparacion(estadoEnum);
+        } else {
+            detalles = detallePedidoService.obtenerDetallesPorEstado(estadoEnum);
+        }
+
         return ResponseEntity.ok(ApiResponse.success(detalles, "Detalles KDS obtenidos exitosamente"));
     }
 

@@ -148,6 +148,15 @@ public class DetallePedidoServiceImpl implements DetallePedidoService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<DetallePedidoResponseDTO> obtenerDetallesKdsQueRequierenPreparacion(EstadoDetallePedido estado) {
+        // Usa query optimizada que filtra por pedidos ABIERTO y ATENDIDO, excluyendo PAGADO y CANCELADO
+        return detallePedidoRepository.findByEstadoParaKds(estado, true).stream()
+                .map(this::mapToResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public DetallePedidoResponseDTO cambiarEstadoDetalle(Integer idDetalle, EstadoDetallePedido nuevoEstado) {
         DetallePedido detalle = detallePedidoRepository.findById(idDetalle)

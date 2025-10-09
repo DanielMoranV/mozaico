@@ -20,5 +20,7 @@ public interface DetallePedidoService {
 
     List<DetallePedidoResponseDTO> obtenerDetallesPorEstado(com.djasoft.mozaico.domain.enums.detallepedido.EstadoDetallePedido estado);
 
+    List<DetallePedidoResponseDTO> obtenerDetallesKdsQueRequierenPreparacion(com.djasoft.mozaico.domain.enums.detallepedido.EstadoDetallePedido estado);
+
     DetallePedidoResponseDTO cambiarEstadoDetalle(Integer idDetalle, com.djasoft.mozaico.domain.enums.detallepedido.EstadoDetallePedido nuevoEstado);
 }

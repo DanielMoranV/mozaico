@@ -3,27 +3,29 @@
 ## Descripción
 Endpoints públicos para mostrar la carta/menú de productos a los clientes **sin necesidad de autenticación**.
 
-⚠️ **IMPORTANTE:** Este sistema es **multitenant**. Cada empresa tiene su propia carta de productos. El `idEmpresa` es **OBLIGATORIO** en todos los endpoints.
+La respuesta incluye **información completa de la empresa** (nombre, logo, dirección, teléfono, etc.) junto con los productos disponibles, ideal para cartas digitales completas.
+
+⚠️ **IMPORTANTE:** Este sistema es **multitenant**. Cada empresa tiene su propia carta de productos identificada por un `slug` único (ej: "restaurante-mozaico"). El `slug` es **OBLIGATORIO** en todos los endpoints.
 
 ## Endpoints Disponibles
 
 ### 1. Obtener Carta Completa de una Empresa
 ```
-GET /api/v1/productos/public/{idEmpresa}/carta
+GET /api/v1/productos/public/{slug}/carta
 ```
 
-**Descripción:** Obtiene todos los productos disponibles y activos de una empresa específica.
+**Descripción:** Obtiene todos los productos disponibles y activos de una empresa específica, junto con información de la empresa (nombre, logo, dirección, etc.).
 
 **Autenticación:** ❌ NO requerida (público)
 
 **Parámetros de ruta:**
-- `idEmpresa` (**OBLIGATORIO**): ID de la empresa (multitenant)
+- `slug` (**OBLIGATORIO**): Slug único de la empresa (ej: "restaurante-mozaico")
 
 **Parámetros de consulta:**
 - `idCategoria` (opcional): Filtrar por ID de categoría
 
 **Filtros aplicados automáticamente:**
-- ✅ Solo productos de la empresa especificada (**multitenant**)
+- ✅ Solo productos de la empresa especificada por slug (**multitenant seguro**)
 - ✅ Solo productos con `disponible = true`
 - ✅ Solo productos con `estado = ACTIVO`
 
@@ -33,57 +35,70 @@ GET /api/v1/productos/public/{idEmpresa}/carta
   "status": "SUCCESS",
   "code": 200,
   "message": "Carta de productos obtenida exitosamente",
-  "data": [
-    {
-      "idProducto": 1,
-      "nombre": "Hamburguesa Clásica",
-      "descripcion": "Hamburguesa con carne de res, lechuga, tomate y queso",
-      "precio": 12.00,
-      "categoria": {
-        "idCategoria": 1,
-        "nombre": "Platos Principales"
-      },
-      "tiempoPreparacion": 15,
-      "disponible": true,
-      "imagenUrl": "/uploads/images/products/hamburguesa.jpg",
-      "ingredientes": "Carne de res, pan, lechuga, tomate, queso",
-      "calorias": 550,
-      "requierePreparacion": true,
-      "esAlcoholico": false,
-      "estado": "ACTIVO"
-    }
-  ]
+  "data": {
+    "empresa": {
+      "nombre": "Restaurante Mozaico",
+      "slug": "restaurante-mozaico",
+      "descripcion": "Comida peruana tradicional con ingredientes frescos",
+      "direccion": "Av. Principal 123, Lima",
+      "telefono": "987654321",
+      "email": "contacto@mozaico.com",
+      "logoUrl": "/uploads/logos/mozaico.png",
+      "paginaWeb": "https://www.mozaico.com",
+      "moneda": "PEN"
+    },
+    "productos": [
+      {
+        "idProducto": 1,
+        "nombre": "Hamburguesa Clásica",
+        "descripcion": "Hamburguesa con carne de res, lechuga, tomate y queso",
+        "precio": 12.00,
+        "categoria": {
+          "idCategoria": 1,
+          "nombre": "Platos Principales"
+        },
+        "tiempoPreparacion": 15,
+        "disponible": true,
+        "imagenUrl": "/uploads/images/products/hamburguesa.jpg",
+        "ingredientes": "Carne de res, pan, lechuga, tomate, queso",
+        "calorias": 550,
+        "requierePreparacion": true,
+        "esAlcoholico": false,
+        "estado": "ACTIVO"
+      }
+    ]
+  }
 }
 ```
 
 **Ejemplo de uso:**
 ```bash
-# Obtener toda la carta de la empresa 1
-curl -X GET "http://localhost:8091/api/v1/productos/public/1/carta"
+# Obtener toda la carta de "restaurante-mozaico"
+curl -X GET "http://localhost:8091/api/v1/productos/public/restaurante-mozaico/carta"
 
-# Filtrar por categoría (ej: Bebidas - idCategoria=2) en empresa 1
-curl -X GET "http://localhost:8091/api/v1/productos/public/1/carta?idCategoria=2"
+# Filtrar por categoría (ej: Bebidas - idCategoria=2)
+curl -X GET "http://localhost:8091/api/v1/productos/public/restaurante-mozaico/carta?idCategoria=2"
 
-# Obtener carta de otra empresa (empresa 2)
-curl -X GET "http://localhost:8091/api/v1/productos/public/2/carta"
+# Obtener carta de otra empresa usando su slug
+curl -X GET "http://localhost:8091/api/v1/productos/public/mi-cafeteria/carta"
 ```
 
 ---
 
 ### 2. Obtener Carta por Categoría de una Empresa
 ```
-GET /api/v1/productos/public/{idEmpresa}/carta/por-categoria
+GET /api/v1/productos/public/{slug}/carta/por-categoria
 ```
 
-**Descripción:** Obtiene todos los productos de una empresa agrupados por categoría.
+**Descripción:** Obtiene todos los productos de una empresa agrupados por categoría, junto con información de la empresa.
 
 **Autenticación:** ❌ NO requerida (público)
 
 **Parámetros de ruta:**
-- `idEmpresa` (**OBLIGATORIO**): ID de la empresa (multitenant)
+- `slug` (**OBLIGATORIO**): Slug único de la empresa (ej: "restaurante-mozaico")
 
 **Filtros aplicados automáticamente:**
-- ✅ Solo productos de la empresa especificada
+- ✅ Solo productos de la empresa especificada por slug
 - ✅ Solo productos disponibles
 - ✅ Solo productos activos
 
@@ -93,33 +108,46 @@ GET /api/v1/productos/public/{idEmpresa}/carta/por-categoria
   "status": "SUCCESS",
   "code": 200,
   "message": "Carta de productos por categoría obtenida exitosamente",
-  "data": [
-    {
-      "idProducto": 1,
-      "nombre": "Hamburguesa Clásica",
-      "precio": 12.00,
-      "categoria": {
-        "idCategoria": 1,
-        "nombre": "Platos Principales"
-      }
+  "data": {
+    "empresa": {
+      "nombre": "Restaurante Mozaico",
+      "slug": "restaurante-mozaico",
+      "descripcion": "Comida peruana tradicional con ingredientes frescos",
+      "direccion": "Av. Principal 123, Lima",
+      "telefono": "987654321",
+      "email": "contacto@mozaico.com",
+      "logoUrl": "/uploads/logos/mozaico.png",
+      "paginaWeb": "https://www.mozaico.com",
+      "moneda": "PEN"
     },
-    {
-      "idProducto": 2,
-      "nombre": "Coca-Cola",
-      "precio": 2.50,
-      "categoria": {
-        "idCategoria": 2,
-        "nombre": "Bebidas"
+    "productos": [
+      {
+        "idProducto": 1,
+        "nombre": "Hamburguesa Clásica",
+        "precio": 12.00,
+        "categoria": {
+          "idCategoria": 1,
+          "nombre": "Platos Principales"
+        }
+      },
+      {
+        "idProducto": 2,
+        "nombre": "Coca-Cola",
+        "precio": 2.50,
+        "categoria": {
+          "idCategoria": 2,
+          "nombre": "Bebidas"
+        }
       }
-    }
-  ]
+    ]
+  }
 }
 ```
 
 **Ejemplo de uso:**
 ```bash
-# Obtener productos por categoría de la empresa 1
-curl -X GET "http://localhost:8091/api/v1/productos/public/1/carta/por-categoria"
+# Obtener productos por categoría de "restaurante-mozaico"
+curl -X GET "http://localhost:8091/api/v1/productos/public/restaurante-mozaico/carta/por-categoria"
 ```
 
 ---
@@ -129,35 +157,50 @@ curl -X GET "http://localhost:8091/api/v1/productos/public/1/carta/por-categoria
 ### JavaScript Vanilla
 
 ```javascript
-// IMPORTANTE: Definir el ID de la empresa
-const ID_EMPRESA = 1; // Cambiar según tu empresa
+// IMPORTANTE: Definir el slug de la empresa
+const SLUG_EMPRESA = 'restaurante-mozaico'; // Cambiar según tu empresa
 
 // Obtener carta completa de la empresa
 async function obtenerCarta() {
     try {
         const response = await fetch(
-            `http://localhost:8091/api/v1/productos/public/${ID_EMPRESA}/carta`
+            `http://localhost:8091/api/v1/productos/public/${SLUG_EMPRESA}/carta`
         );
         const data = await response.json();
 
         if (data.status === 'SUCCESS') {
-            console.log('Productos:', data.data);
-            mostrarProductos(data.data);
+            console.log('Empresa:', data.data.empresa);
+            console.log('Productos:', data.data.productos);
+
+            // Mostrar información de la empresa
+            mostrarInfoEmpresa(data.data.empresa);
+
+            // Mostrar productos
+            mostrarProductos(data.data.productos);
         }
     } catch (error) {
         console.error('Error:', error);
     }
 }
 
+// Mostrar información de la empresa
+function mostrarInfoEmpresa(empresa) {
+    document.getElementById('nombre-empresa').textContent = empresa.nombre;
+    document.getElementById('logo-empresa').src = empresa.logoUrl;
+    document.getElementById('descripcion-empresa').textContent = empresa.descripcion;
+    document.getElementById('direccion-empresa').textContent = empresa.direccion;
+    document.getElementById('telefono-empresa').textContent = empresa.telefono;
+}
+
 // Filtrar por categoría
-async function obtenerCartaPorCategoria(idEmpresa, idCategoria) {
+async function obtenerCartaPorCategoria(slugEmpresa, idCategoria) {
     const url = idCategoria
-        ? `http://localhost:8091/api/v1/productos/public/${idEmpresa}/carta?idCategoria=${idCategoria}`
-        : `http://localhost:8091/api/v1/productos/public/${idEmpresa}/carta`;
+        ? `http://localhost:8091/api/v1/productos/public/${slugEmpresa}/carta?idCategoria=${idCategoria}`
+        : `http://localhost:8091/api/v1/productos/public/${slugEmpresa}/carta`;
 
     const response = await fetch(url);
     const data = await response.json();
-    return data.data;
+    return data.data; // Retorna { empresa: {...}, productos: [...] }
 }
 ```
 

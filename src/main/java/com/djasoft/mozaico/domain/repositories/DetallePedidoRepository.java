@@ -22,12 +22,27 @@ public interface DetallePedidoRepository extends JpaRepository<DetallePedido, In
             Boolean requierePreparacion
     );
 
+    /**
+     * Query optimizada para KDS con ordenamiento condicional según el estado:
+     * - PEDIDO y EN_PREPARACION: Más antiguo primero (ASC) - FIFO
+     * - LISTO: Más nuevo primero (DESC) - LIFO (mostrar recién terminados arriba)
+     *
+     * Ordena por:
+     * 1. fechaEstadoActualizado cuando existe (cuando cambió al estado actual)
+     * 2. fechaCreacion como fallback (cuando se creó el detalle)
+     */
     @Query("""
         SELECT d FROM DetallePedido d
         WHERE d.estado = :estado
         AND d.producto.requierePreparacion = :requierePreparacion
         AND d.pedido.estado IN ('ABIERTO', 'ATENDIDO')
-        ORDER BY d.pedido.fechaPedido ASC
+        ORDER BY
+            CASE WHEN d.estado = 'LISTO'
+                 THEN COALESCE(d.fechaEstadoActualizado, d.fechaCreacion)
+            END DESC,
+            CASE WHEN d.estado != 'LISTO'
+                 THEN COALESCE(d.fechaEstadoActualizado, d.fechaCreacion)
+            END ASC
     """)
     List<DetallePedido> findByEstadoParaKds(
             @Param("estado") com.djasoft.mozaico.domain.enums.detallepedido.EstadoDetallePedido estado,

@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -21,4 +22,6 @@ public class DetallePedidoResponseDTO {
     private BigDecimal subtotal;
     private String observaciones;
     private EstadoDetallePedido estado;
+    private LocalDateTime fechaCreacion;
+    private LocalDateTime fechaEstadoActualizado;
 }

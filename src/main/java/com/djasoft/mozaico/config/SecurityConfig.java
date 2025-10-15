@@ -56,10 +56,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/carta-qr/public/**").permitAll()
 
                         // Endpoints que requieren autenticación específica
-                        .requestMatchers("/api/v1/usuarios/**").hasAnyAuthority("ROLE_MANAGE_USERS", "ROLE_ALL_PERMISSIONS")
-                        .requestMatchers("/api/v1/pagos/**").hasAnyAuthority("ROLE_MANAGE_PAYMENTS", "ROLE_ALL_PERMISSIONS")
-                        .requestMatchers("/api/v1/pedidos/**").hasAnyAuthority("ROLE_MANAGE_ORDERS", "ROLE_VIEW_ORDERS", "ROLE_ALL_PERMISSIONS")
-                        .requestMatchers("/api/v1/reservas/**").hasAnyAuthority("ROLE_MANAGE_RESERVATIONS", "ROLE_VIEW_RESERVATIONS", "ROLE_ALL_PERMISSIONS")
+                        .requestMatchers("/api/v1/usuarios/**")
+                        .hasAnyAuthority("ROLE_MANAGE_USERS", "ROLE_ALL_PERMISSIONS")
+                        .requestMatchers("/api/v1/pagos/**")
+                        .hasAnyAuthority("ROLE_MANAGE_PAYMENTS", "ROLE_ALL_PERMISSIONS")
+                        .requestMatchers("/api/v1/pedidos/**")
+                        .hasAnyAuthority("ROLE_MANAGE_ORDERS", "ROLE_VIEW_ORDERS", "ROLE_ALL_PERMISSIONS")
+                        .requestMatchers("/api/v1/reservas/**")
+                        .hasAnyAuthority("ROLE_MANAGE_RESERVATIONS", "ROLE_VIEW_RESERVATIONS", "ROLE_ALL_PERMISSIONS")
 
                         // Todos los demás endpoints requieren autenticación
                         .anyRequest().authenticated())
@@ -85,7 +89,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173")); // Permitir tu frontend de Vue.js
+        // Usar allowedOriginPatterns para permitir acceso desde la red local
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",
+                "http://0.0.0.0:*",
+                "http://192.168.1.*:*"  // Permitir cualquier dispositivo en la red local
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*")); // Permitir todas las cabeceras
         configuration.setAllowCredentials(true); // Permitir credenciales (cookies, etc.)

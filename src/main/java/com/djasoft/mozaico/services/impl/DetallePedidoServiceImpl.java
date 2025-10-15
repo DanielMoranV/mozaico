@@ -163,6 +163,10 @@ public class DetallePedidoServiceImpl implements DetallePedidoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Detalle de pedido no encontrado con id: " + idDetalle));
 
         detalle.setEstado(nuevoEstado);
+
+        // Registrar timestamp del cambio de estado para ordenamiento correcto en KDS
+        detalle.setFechaEstadoActualizado(java.time.LocalDateTime.now());
+
         DetallePedido detalleActualizado = detallePedidoRepository.save(detalle);
         return mapToResponseDTO(detalleActualizado);
     }
@@ -226,6 +230,8 @@ public class DetallePedidoServiceImpl implements DetallePedidoService {
                 .subtotal(detalle.getSubtotal())
                 .observaciones(detalle.getObservaciones())
                 .estado(detalle.getEstado())
+                .fechaCreacion(detalle.getFechaCreacion())
+                .fechaEstadoActualizado(detalle.getFechaEstadoActualizado())
                 .build();
     }
 }

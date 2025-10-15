@@ -66,7 +66,9 @@ GET /api/v1/kds/detalles?estado={ESTADO}&requierePreparacion={true|false}
 **Filtros Automáticos Aplicados:**
 - ✅ Solo pedidos con estado `ABIERTO` o `ATENDIDO`
 - ❌ Excluye automáticamente pedidos `PAGADO` o `CANCELADO`
-- 📊 Ordenados por fecha de pedido (más antiguos primero)
+- 📊 **Ordenamiento Inteligente por Estado:**
+  - **PEDIDO y EN_PREPARACION**: Más antiguo primero (FIFO) - Preparar en orden de llegada
+  - **LISTO**: Más nuevo primero (LIFO) - Mostrar recién terminados arriba para servir rápido
 
 **Headers:**
 ```
@@ -116,7 +118,9 @@ Content-Type: application/json
       "precioUnitario": 45.00,
       "subtotal": 45.00,
       "observaciones": "Término medio, sin cebolla",
-      "estado": "PEDIDO"
+      "estado": "PEDIDO",
+      "fechaCreacion": "2025-10-08T14:30:15",
+      "fechaEstadoActualizado": null
     }
   ]
 }
@@ -282,6 +286,8 @@ export interface DetallePedidoResponseDTO {
   subtotal: number;
   observaciones?: string;
   estado: EstadoDetallePedido;
+  fechaCreacion: string; // ISO 8601 format - Cuándo se creó el detalle
+  fechaEstadoActualizado: string | null; // ISO 8601 format - Cuándo cambió de estado
 }
 
 export interface ApiResponse<T> {
@@ -465,9 +471,11 @@ Object.entries(productosPorMesa).forEach(([mesa, productos]) => {
 
 1. **Polling vs WebSocket**: Para actualizaciones en tiempo real, considerar implementar WebSocket en lugar de polling
 2. **Agrupación**: Agrupar productos del mismo pedido para mejor organización en cocina
-3. **Priorización**: ✅ Ya implementado - Los productos se ordenan automáticamente por fecha de pedido (más antiguos primero)
+3. **Priorización**: ✅ Ya implementado - Ordenamiento inteligente:
+   - PEDIDO/EN_PREPARACION: Más antiguo primero (FIFO)
+   - LISTO: Más nuevo primero (LIFO)
 4. **Notificaciones**: Implementar notificaciones push cuando productos cambien a `SERVIDO`
-5. **Auditoría**: Considerar registrar quién y cuándo cambió cada estado
+5. **Auditoría**: ✅ Ya implementado - Se registra `fechaEstadoActualizado` en cada cambio de estado
 6. **Filtro de Pedidos**: ✅ Ya implementado - Solo muestra productos de pedidos activos (ABIERTO/ATENDIDO)
 
 ### Optimizaciones Sugeridas
@@ -482,8 +490,10 @@ Object.entries(productosPorMesa).forEach(([mesa, productos]) => {
 // Filtrar por estado de pedido
 // ✅ Ya implementado - Solo muestra pedidos ABIERTO y ATENDIDO
 
-// Ordenamiento por antigüedad
-// ✅ Ya implementado - ORDER BY fechaPedido ASC
+// Ordenamiento inteligente por antigüedad
+// ✅ Ya implementado - Ordenamiento condicional:
+//    - PEDIDO/EN_PREPARACION: ORDER BY fechaCreacion ASC (FIFO)
+//    - LISTO: ORDER BY fechaEstadoActualizado DESC (LIFO)
 
 // Filtrar por categoría de producto
 // Futuro: Útil para separar cocina caliente, fría, bar, etc.

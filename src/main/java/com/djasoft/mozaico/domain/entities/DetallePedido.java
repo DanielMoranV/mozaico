@@ -6,8 +6,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -46,4 +48,11 @@ public class DetallePedido {
     @Builder.Default
     @Column(name = "estado")
     private EstadoDetallePedido estado = EstadoDetallePedido.PEDIDO;
+
+    @CreationTimestamp
+    @Column(name = "fecha_creacion", updatable = false)
+    private LocalDateTime fechaCreacion;
+
+    @Column(name = "fecha_estado_actualizado")
+    private LocalDateTime fechaEstadoActualizado;
 }

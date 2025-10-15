@@ -1,11 +1,16 @@
 package com.djasoft.mozaico.web.controllers;
 
+import com.djasoft.mozaico.domain.entities.Empresa;
 import com.djasoft.mozaico.domain.enums.producto.EstadoProducto;
+import com.djasoft.mozaico.domain.repositories.EmpresaRepository;
 import com.djasoft.mozaico.services.ProductoService;
+import com.djasoft.mozaico.web.dtos.CartaPublicaResponseDTO;
+import com.djasoft.mozaico.web.dtos.EmpresaPublicaDTO;
 import com.djasoft.mozaico.web.dtos.ProductoRequestDTO;
 import com.djasoft.mozaico.web.dtos.ProductoResponseDTO;
 import com.djasoft.mozaico.web.dtos.ProductoUpdateDTO;
 import com.djasoft.mozaico.web.dtos.response.ApiResponse;
+import com.djasoft.mozaico.web.exceptions.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +26,7 @@ import java.util.List;
 public class ProductoController {
 
     private final ProductoService productoService;
+    private final EmpresaRepository empresaRepository;
 
     @PostMapping
     public ResponseEntity<ApiResponse<ProductoResponseDTO>> crearProducto(@Valid @RequestBody ProductoRequestDTO requestDTO) {
@@ -102,17 +108,23 @@ public class ProductoController {
      * - Disponibles (disponible = true)
      * - Activos (estado = ACTIVO)
      *
+     * Incluye información de la empresa (nombre, logo, dirección, etc.) junto con los productos
      * Ideal para mostrar la carta a clientes en aplicaciones web/móviles y códigos QR
      *
      * @param slug Slug único de la empresa (ej: "restaurante-mozaico")
      * @param idCategoria ID de categoría para filtrar (opcional)
-     * @return Lista de productos disponibles de la empresa
+     * @return Información de la empresa y lista de productos disponibles
      */
     @GetMapping("/public/{slug}/carta")
-    public ResponseEntity<ApiResponse<List<ProductoResponseDTO>>> obtenerCartaPublica(
+    public ResponseEntity<ApiResponse<CartaPublicaResponseDTO>> obtenerCartaPublica(
             @PathVariable String slug,
             @RequestParam(required = false) Long idCategoria) {
 
+        // Buscar la empresa por slug
+        Empresa empresa = empresaRepository.findBySlug(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa no encontrada con slug: " + slug));
+
+        // Obtener los productos de la empresa
         List<ProductoResponseDTO> productos = productoService.buscarProductosPorSlugEmpresa(
                 slug,
                 idCategoria,  // idCategoria (opcional para filtrar por categoría)
@@ -120,7 +132,26 @@ public class ProductoController {
                 EstadoProducto.ACTIVO  // estado = ACTIVO
         );
 
-        return ResponseEntity.ok(ApiResponse.success(productos, "Carta de productos obtenida exitosamente"));
+        // Mapear información pública de la empresa
+        EmpresaPublicaDTO empresaPublica = EmpresaPublicaDTO.builder()
+                .nombre(empresa.getNombre())
+                .slug(empresa.getSlug())
+                .descripcion(empresa.getDescripcion())
+                .direccion(empresa.getDireccion())
+                .telefono(empresa.getTelefono())
+                .email(empresa.getEmail())
+                .logoUrl(empresa.getLogoUrl())
+                .paginaWeb(empresa.getPaginaWeb())
+                .moneda(empresa.getMoneda())
+                .build();
+
+        // Construir respuesta completa
+        CartaPublicaResponseDTO cartaPublica = CartaPublicaResponseDTO.builder()
+                .empresa(empresaPublica)
+                .productos(productos)
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success(cartaPublica, "Carta de productos obtenida exitosamente"));
     }
 
     /**
@@ -129,14 +160,20 @@ public class ProductoController {
      *
      * Este endpoint NO requiere autenticación
      * Agrupa los productos por categoría para una mejor visualización
+     * Incluye información de la empresa junto con los productos
      *
      * @param slug Slug único de la empresa (ej: "restaurante-mozaico")
-     * @return Lista de productos agrupados por categoría
+     * @return Información de la empresa y lista de productos agrupados por categoría
      */
     @GetMapping("/public/{slug}/carta/por-categoria")
-    public ResponseEntity<ApiResponse<List<ProductoResponseDTO>>> obtenerCartaPorCategoria(
+    public ResponseEntity<ApiResponse<CartaPublicaResponseDTO>> obtenerCartaPorCategoria(
             @PathVariable String slug) {
 
+        // Buscar la empresa por slug
+        Empresa empresa = empresaRepository.findBySlug(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa no encontrada con slug: " + slug));
+
+        // Obtener los productos de la empresa
         List<ProductoResponseDTO> productos = productoService.buscarProductosPorSlugEmpresa(
                 slug,
                 null,  // todas las categorías
@@ -144,6 +181,25 @@ public class ProductoController {
                 EstadoProducto.ACTIVO  // solo activos
         );
 
-        return ResponseEntity.ok(ApiResponse.success(productos, "Carta de productos por categoría obtenida exitosamente"));
+        // Mapear información pública de la empresa
+        EmpresaPublicaDTO empresaPublica = EmpresaPublicaDTO.builder()
+                .nombre(empresa.getNombre())
+                .slug(empresa.getSlug())
+                .descripcion(empresa.getDescripcion())
+                .direccion(empresa.getDireccion())
+                .telefono(empresa.getTelefono())
+                .email(empresa.getEmail())
+                .logoUrl(empresa.getLogoUrl())
+                .paginaWeb(empresa.getPaginaWeb())
+                .moneda(empresa.getMoneda())
+                .build();
+
+        // Construir respuesta completa
+        CartaPublicaResponseDTO cartaPublica = CartaPublicaResponseDTO.builder()
+                .empresa(empresaPublica)
+                .productos(productos)
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success(cartaPublica, "Carta de productos por categoría obtenida exitosamente"));
     }
 }

@@ -82,7 +82,12 @@ public class Empresa {
     @Column(length = 10)
     @Builder.Default
     private String prefijoTicket = "TKT"; // Prefijo para tickets internos
-    
+
+    // === CONFIGURACIÓN DE RESERVAS ===
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer duracionReservaHoras = 2; // Duración por defecto de una reserva en horas
+
     // === AUDITORÍA ===
     @CreationTimestamp
     private LocalDateTime fechaCreacion;

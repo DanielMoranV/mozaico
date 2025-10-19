@@ -16,6 +16,7 @@ Los productos pueden tener los siguientes estados:
 |--------|-------------|---------------|
 | `PEDIDO` | Cliente pidió el producto | Estado inicial cuando se crea el pedido |
 | `EN_PREPARACION` | Cocina está preparando | Cuando cocina comienza a preparar el producto |
+| `LISTO` | Cocina terminó, listo para servir | Cuando cocina termina de preparar y el producto está listo para que el mesero lo recoja |
 | `SERVIDO` | Producto entregado al cliente | Cuando el mesero entrega el producto a la mesa |
 | `CANCELADO` | Producto cancelado | Cuando se cancela el producto del pedido |
 
@@ -33,15 +34,16 @@ El sistema solo muestra productos de pedidos activos:
 ## Flujo de Trabajo
 
 ```
-PEDIDO → EN_PREPARACION → SERVIDO
+PEDIDO → EN_PREPARACION → LISTO → SERVIDO
    ↓
 CANCELADO
 ```
 
 1. **Cocina** ve los productos en estado `PEDIDO`
 2. **Cocina** cambia a `EN_PREPARACION` cuando comienza a preparar
-3. **Cocina** cambia a `SERVIDO` cuando el producto está listo
-4. **Mesero** ve los productos `SERVIDO` para entregarlos a la mesa
+3. **Cocina** cambia a `LISTO` cuando el producto está terminado y listo para servir
+4. **Mesero** ve los productos `LISTO` y los recoge para entregarlos a la mesa
+5. **Mesero** cambia a `SERVIDO` cuando entrega el producto al cliente en la mesa
 
 ---
 
@@ -58,17 +60,18 @@ GET /api/v1/kds/detalles?estado={ESTADO}&requierePreparacion={true|false}
 
 **Parámetros Query:**
 - `estado` (string, requerido): Estado del detalle de pedido
-  - Valores posibles: `PEDIDO`, `EN_PREPARACION`, `SERVIDO`, `CANCELADO`
+  - Valores posibles: `PEDIDO`, `EN_PREPARACION`, `LISTO`, `SERVIDO`, `CANCELADO`
 - `requierePreparacion` (boolean, opcional, default: `true`): Filtrar solo productos que requieren preparación en cocina
   - `true`: Solo muestra productos con `requierePreparacion = true` (bebidas preparadas, platos cocinados, etc.)
-  - `false`: Muestra TODOS los productos sin filtrar
+  - `false`: Muestra TODOS los productos (incluye bebidas embotelladas, etc.)
 
 **Filtros Automáticos Aplicados:**
-- ✅ Solo pedidos con estado `ABIERTO` o `ATENDIDO`
+- ✅ Solo pedidos con estado `ABIERTO` o `ATENDIDO` (aplicado a AMBOS valores de requierePreparacion)
 - ❌ Excluye automáticamente pedidos `PAGADO` o `CANCELADO`
 - 📊 **Ordenamiento Inteligente por Estado:**
   - **PEDIDO y EN_PREPARACION**: Más antiguo primero (FIFO) - Preparar en orden de llegada
   - **LISTO**: Más nuevo primero (LIFO) - Mostrar recién terminados arriba para servir rápido
+  - **SERVIDO**: Más nuevo primero (DESC) - Ver últimos productos entregados
 
 **Headers:**
 ```
@@ -130,7 +133,9 @@ Content-Type: application/json
 - **Cocina:** `GET /api/v1/kds/detalles?estado=PEDIDO` - Ver productos pendientes por preparar (solo requieren cocina de pedidos activos)
 - **Cocina:** `GET /api/v1/kds/detalles?estado=PEDIDO&requierePreparacion=true` - Explícitamente solo productos que requieren preparación de pedidos activos
 - **Cocina:** `GET /api/v1/kds/detalles?estado=EN_PREPARACION` - Ver productos que se están preparando (solo de pedidos activos)
-- **Meseros:** `GET /api/v1/kds/detalles?estado=SERVIDO` - Ver productos listos para entregar (solo de pedidos activos)
+- **Cocina:** `GET /api/v1/kds/detalles?estado=LISTO` - Ver productos terminados listos para que meseros recojan (solo de pedidos activos)
+- **Meseros:** `GET /api/v1/kds/detalles?estado=LISTO` - Ver productos listos para recoger y llevar a las mesas (solo de pedidos activos)
+- **Meseros:** `GET /api/v1/kds/detalles?estado=SERVIDO` - Ver productos ya entregados a los clientes (solo de pedidos activos)
 - **Bar:** `GET /api/v1/kds/detalles?estado=PEDIDO&requierePreparacion=false` - Ver TODOS los productos de pedidos activos (incluye bebidas embotelladas, etc.)
 
 **Nota**: Todos los endpoints filtran automáticamente solo pedidos con estado `ABIERTO` o `ATENDIDO`. Los pedidos `PAGADO` o `CANCELADO` no aparecen en el KDS.
@@ -149,7 +154,7 @@ PUT /api/v1/kds/detalles/{id}/estado?estado={NUEVO_ESTADO}
 **Parámetros:**
 - `id` (Integer, path, requerido): ID del detalle de pedido
 - `estado` (string, query, requerido): Nuevo estado del detalle
-  - Valores posibles: `PEDIDO`, `EN_PREPARACION`, `SERVIDO`, `CANCELADO`
+  - Valores posibles: `PEDIDO`, `EN_PREPARACION`, `LISTO`, `SERVIDO`, `CANCELADO`
 
 **Headers:**
 ```
@@ -157,9 +162,16 @@ Authorization: Bearer {token}
 Content-Type: application/json
 ```
 
-**Ejemplo de Petición:**
+**Ejemplos de Petición:**
 ```
+# Cocina comienza a preparar
 PUT /api/v1/kds/detalles/1/estado?estado=EN_PREPARACION
+
+# Cocina termina - producto listo para servir
+PUT /api/v1/kds/detalles/1/estado?estado=LISTO
+
+# Mesero entrega al cliente
+PUT /api/v1/kds/detalles/1/estado?estado=SERVIDO
 ```
 
 **Respuesta Exitosa (200 OK):**
@@ -221,6 +233,7 @@ PUT /api/v1/kds/detalles/1/estado?estado=EN_PREPARACION
 export enum EstadoDetallePedido {
   PEDIDO = 'PEDIDO',
   EN_PREPARACION = 'EN_PREPARACION',
+  LISTO = 'LISTO',
   SERVIDO = 'SERVIDO',
   CANCELADO = 'CANCELADO'
 }
@@ -411,20 +424,20 @@ async function iniciarPreparacion(idDetalle: number) {
 }
 ```
 
-### Ejemplo 3: Marcar como Listo
+### Ejemplo 3: Marcar como Listo (Cocina Terminó)
 
 ```typescript
-// Cuando el producto está listo para servir
+// Cuando cocina termina de preparar el producto
 async function marcarComoListo(idDetalle: number) {
   try {
     const resultado = await cambiarEstadoDetalle(
       idDetalle,
-      EstadoDetallePedido.SERVIDO,
+      EstadoDetallePedido.LISTO,
       userToken
     );
 
     if (resultado.success) {
-      // Notificar a meseros que el producto está listo
+      // Notificar a meseros que el producto está listo para recoger
       notificarMeseros(resultado.data);
     }
   } catch (error) {
@@ -433,12 +446,33 @@ async function marcarComoListo(idDetalle: number) {
 }
 ```
 
-### Ejemplo 4: Panel de Meseros
+### Ejemplo 4: Marcar como Servido (Mesero Entregó)
 
 ```typescript
-// Ver productos listos para entregar
+// Cuando el mesero entrega el producto al cliente
+async function marcarComoServido(idDetalle: number) {
+  try {
+    const resultado = await cambiarEstadoDetalle(
+      idDetalle,
+      EstadoDetallePedido.SERVIDO,
+      userToken
+    );
+
+    if (resultado.success) {
+      console.log('Producto entregado al cliente:', resultado.data.producto.nombre);
+    }
+  } catch (error) {
+    console.error('Error al marcar como servido:', error);
+  }
+}
+```
+
+### Ejemplo 5: Panel de Meseros - Ver Productos Listos para Recoger
+
+```typescript
+// Ver productos que cocina terminó y están listos para recoger
 const productosListos = await obtenerDetallesPorEstado(
-  EstadoDetallePedido.SERVIDO,
+  EstadoDetallePedido.LISTO,
   userToken
 );
 
@@ -454,7 +488,7 @@ const productosPorMesa = productosListos.data.reduce((acc, detalle) => {
 
 // Mostrar notificaciones
 Object.entries(productosPorMesa).forEach(([mesa, productos]) => {
-  console.log(`Mesa ${mesa}: ${productos.length} producto(s) listo(s)`);
+  console.log(`Mesa ${mesa}: ${productos.length} producto(s) listo(s) para recoger`);
 });
 ```
 
@@ -463,8 +497,8 @@ Object.entries(productosPorMesa).forEach(([mesa, productos]) => {
 ## Notas Importantes
 
 ### Permisos
-- **Cocina**: Debe tener permiso para cambiar estados a `EN_PREPARACION` y `SERVIDO`
-- **Meseros**: Pueden consultar estados pero típicamente no cambian el estado (excepto a `SERVIDO` si lo entregan)
+- **Cocina**: Debe tener permiso para cambiar estados a `EN_PREPARACION` y `LISTO`
+- **Meseros**: Pueden consultar estados y cambiar de `LISTO` a `SERVIDO` cuando entregan al cliente
 - **Administradores**: Acceso completo a todos los estados
 
 ### Buenas Prácticas
@@ -474,7 +508,7 @@ Object.entries(productosPorMesa).forEach(([mesa, productos]) => {
 3. **Priorización**: ✅ Ya implementado - Ordenamiento inteligente:
    - PEDIDO/EN_PREPARACION: Más antiguo primero (FIFO)
    - LISTO: Más nuevo primero (LIFO)
-4. **Notificaciones**: Implementar notificaciones push cuando productos cambien a `SERVIDO`
+4. **Notificaciones**: Implementar notificaciones push cuando productos cambien a `LISTO` (para meseros)
 5. **Auditoría**: ✅ Ya implementado - Se registra `fechaEstadoActualizado` en cada cambio de estado
 6. **Filtro de Pedidos**: ✅ Ya implementado - Solo muestra productos de pedidos activos (ABIERTO/ATENDIDO)
 
@@ -563,7 +597,11 @@ curl -X GET "http://localhost:8080/api/v1/kds/detalles?estado=PEDIDO&requierePre
 curl -X PUT "http://localhost:8080/api/v1/kds/detalles/1/estado?estado=EN_PREPARACION" \
   -H "Authorization: Bearer YOUR_TOKEN"
 
-# Marcar como servido
+# Marcar como listo (cocina terminó)
+curl -X PUT "http://localhost:8080/api/v1/kds/detalles/1/estado?estado=LISTO" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# Marcar como servido (mesero entregó)
 curl -X PUT "http://localhost:8080/api/v1/kds/detalles/1/estado?estado=SERVIDO" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```

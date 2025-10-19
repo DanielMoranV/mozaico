@@ -10,6 +10,8 @@ import com.djasoft.mozaico.domain.repositories.MesaRepository;
 import com.djasoft.mozaico.domain.repositories.ReservaRepository;
 import com.djasoft.mozaico.services.ReservaService;
 import com.djasoft.mozaico.web.dtos.ClienteResponseDTO;
+import com.djasoft.mozaico.web.dtos.DisponibilidadRequestDTO;
+import com.djasoft.mozaico.web.dtos.DisponibilidadResponseDTO;
 import com.djasoft.mozaico.web.dtos.MesaResponseDTO;
 import com.djasoft.mozaico.web.dtos.ReservaRequestDTO;
 import com.djasoft.mozaico.web.dtos.ReservaResponseDTO;
@@ -31,8 +33,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ReservaServiceImpl implements ReservaService {
 
-    private static final long RESERVATION_DURATION_HOURS = 2;
-
     private final ReservaRepository reservaRepository;
     private final ClienteRepository clienteRepository;
     private final MesaRepository mesaRepository;
@@ -47,6 +47,9 @@ public class ReservaServiceImpl implements ReservaService {
         Mesa mesa = mesaRepository.findById(reservaRequestDTO.getIdMesa())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Mesa no encontrada con el id: " + reservaRequestDTO.getIdMesa()));
+
+        // Validar capacidad de la mesa
+        validarCapacidadMesa(mesa, reservaRequestDTO.getNumeroPersonas());
 
         // Validar disponibilidad de la mesa
         validarDisponibilidadMesa(mesa, reservaRequestDTO.getFechaHoraReserva(), null);
@@ -76,8 +79,9 @@ public class ReservaServiceImpl implements ReservaService {
         var currentUser = JwtAuthenticationFilter.getCurrentUser();
         Long empresaId = currentUser.getEmpresa().getIdEmpresa();
 
-        return reservaRepository.findAll().stream()
-                .filter(reserva -> reserva.getEmpresa().getIdEmpresa().equals(empresaId))
+        return reservaRepository.findAll((root, query, criteriaBuilder) ->
+            criteriaBuilder.equal(root.get("empresa").get("idEmpresa"), empresaId)
+        ).stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }
@@ -119,6 +123,12 @@ public class ReservaServiceImpl implements ReservaService {
             Mesa mesa = mesaRepository.findById(reservaUpdateDTO.getIdMesa())
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Mesa no encontrada con el id: " + reservaUpdateDTO.getIdMesa()));
+            // Validar capacidad si cambia mesa o número de personas
+            Integer numeroPersonas = reservaUpdateDTO.getNumeroPersonas() != null
+                    ? reservaUpdateDTO.getNumeroPersonas()
+                    : reservaExistente.getNumeroPersonas();
+            validarCapacidadMesa(mesa, numeroPersonas);
+
             // Validar disponibilidad de la mesa si cambia
             if (!mesa.equals(reservaExistente.getMesa())
                     || !reservaUpdateDTO.getFechaHoraReserva().equals(reservaExistente.getFechaHoraReserva())) {
@@ -150,9 +160,15 @@ public class ReservaServiceImpl implements ReservaService {
     @Override
     @Transactional
     public void eliminarReserva(Integer id) {
-        if (!reservaRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Reserva no encontrada con el id: " + id);
+        Reserva reserva = reservaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reserva no encontrada con el id: " + id));
+
+        // Validar que la reserva pertenezca a la empresa del usuario actual
+        var currentUser = JwtAuthenticationFilter.getCurrentUser();
+        if (!reserva.getEmpresa().getIdEmpresa().equals(currentUser.getEmpresa().getIdEmpresa())) {
+            throw new ResourceNotFoundException("Reserva no encontrada");
         }
+
         reservaRepository.deleteById(id);
     }
 
@@ -171,8 +187,14 @@ public class ReservaServiceImpl implements ReservaService {
     public List<ReservaResponseDTO> buscarReservas(Integer idCliente, Integer idMesa,
             LocalDateTime fechaHoraReservaDesde, LocalDateTime fechaHoraReservaHasta, EstadoReserva estado,
             Integer numeroPersonas, String searchTerm, String logic) {
+        var currentUser = JwtAuthenticationFilter.getCurrentUser();
+        Long empresaId = currentUser.getEmpresa().getIdEmpresa();
+
         Specification<Reserva> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+
+            // Filtro obligatorio por empresa (multitenant)
+            predicates.add(criteriaBuilder.equal(root.get("empresa").get("idEmpresa"), empresaId));
 
             if (idCliente != null) {
                 predicates.add(criteriaBuilder.equal(root.get("cliente").get("idCliente"), idCliente));
@@ -201,12 +223,16 @@ public class ReservaServiceImpl implements ReservaService {
                 predicates.add(globalSearch);
             }
 
-            if (predicates.isEmpty()) {
-                return null;
+            if (predicates.size() == 1) {
+                // Solo filtro de empresa
+                return predicates.get(0);
             }
 
             if ("OR".equalsIgnoreCase(logic)) {
-                return criteriaBuilder.or(predicates.toArray(new Predicate[0]));
+                // El filtro de empresa debe ser AND con el OR de los demás
+                Predicate empresaPredicate = predicates.remove(0);
+                Predicate otherPredicates = criteriaBuilder.or(predicates.toArray(new Predicate[0]));
+                return criteriaBuilder.and(empresaPredicate, otherPredicates);
             } else {
                 return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
             }
@@ -217,11 +243,23 @@ public class ReservaServiceImpl implements ReservaService {
                 .collect(Collectors.toList());
     }
 
+    private void validarCapacidadMesa(Mesa mesa, Integer numeroPersonas) {
+        if (numeroPersonas > mesa.getCapacidad()) {
+            throw new ResourceConflictException(
+                    "La mesa " + mesa.getNumeroMesa() + " tiene capacidad para " + mesa.getCapacidad()
+                            + " personas, pero se solicitó para " + numeroPersonas + " personas.");
+        }
+    }
+
     private void validarDisponibilidadMesa(Mesa mesa, LocalDateTime fechaHoraReserva, Integer idReservaActual) {
+        // Obtener duración de reserva configurada para la empresa
+        var currentUser = JwtAuthenticationFilter.getCurrentUser();
+        Integer duracionHoras = currentUser.getEmpresa().getDuracionReservaHoras();
+
         // Rango de tiempo donde la mesa no puede tener otra reserva comenzando.
         // Si una reserva existente comienza en este rango, se solapará con la nueva.
-        LocalDateTime inicioConflicto = fechaHoraReserva.minusHours(RESERVATION_DURATION_HOURS);
-        LocalDateTime finConflicto = fechaHoraReserva.plusHours(RESERVATION_DURATION_HOURS);
+        LocalDateTime inicioConflicto = fechaHoraReserva.minusHours(duracionHoras);
+        LocalDateTime finConflicto = fechaHoraReserva.plusHours(duracionHoras);
 
         List<Reserva> reservasConflictivas = reservaRepository.findAll((root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -248,6 +286,69 @@ public class ReservaServiceImpl implements ReservaService {
             throw new ResourceConflictException("La mesa " + mesa.getNumeroMesa()
                     + " ya está reservada o ocupada para la fecha y hora seleccionadas.");
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DisponibilidadResponseDTO consultarDisponibilidad(DisponibilidadRequestDTO requestDTO) {
+        var currentUser = JwtAuthenticationFilter.getCurrentUser();
+        Long empresaId = currentUser.getEmpresa().getIdEmpresa();
+
+        LocalDateTime fechaHora = requestDTO.getFechaHora();
+        Integer numeroPersonas = requestDTO.getNumeroPersonas();
+        String ubicacion = requestDTO.getUbicacion();
+
+        // Buscar todas las mesas de la empresa que tengan capacidad suficiente
+        List<Mesa> mesasCandidatas = mesaRepository.findAll((root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.equal(root.get("empresa").get("idEmpresa"), empresaId));
+            predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("capacidad"), numeroPersonas));
+            predicates.add(criteriaBuilder.equal(root.get("estado"), com.djasoft.mozaico.domain.enums.mesa.EstadoMesa.DISPONIBLE));
+
+            if (ubicacion != null && !ubicacion.isEmpty()) {
+                predicates.add(criteriaBuilder.equal(root.get("ubicacion"), ubicacion));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        });
+
+        // Obtener duración de reserva configurada para la empresa
+        Integer duracionHoras = currentUser.getEmpresa().getDuracionReservaHoras();
+
+        // Filtrar mesas que no tengan conflictos de reserva
+        LocalDateTime inicioConflicto = fechaHora.minusHours(duracionHoras);
+        LocalDateTime finConflicto = fechaHora.plusHours(duracionHoras);
+
+        List<DisponibilidadResponseDTO.MesaDisponibleDTO> mesasDisponibles = mesasCandidatas.stream()
+                .filter(mesa -> {
+                    // Verificar si tiene reservas conflictivas
+                    List<Reserva> reservasConflictivas = reservaRepository.findAll((root, query, criteriaBuilder) -> {
+                        List<Predicate> predicates = new ArrayList<>();
+                        predicates.add(criteriaBuilder.equal(root.get("mesa"), mesa));
+                        predicates.add(criteriaBuilder.notEqual(root.get("estado"), EstadoReserva.CANCELADA));
+                        predicates.add(criteriaBuilder.notEqual(root.get("estado"), EstadoReserva.NO_PRESENTADO));
+                        predicates.add(criteriaBuilder.notEqual(root.get("estado"), EstadoReserva.COMPLETADA));
+                        predicates.add(
+                                criteriaBuilder.and(
+                                        criteriaBuilder.greaterThan(root.get("fechaHoraReserva"), inicioConflicto),
+                                        criteriaBuilder.lessThan(root.get("fechaHoraReserva"), finConflicto)));
+                        return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+                    });
+                    return reservasConflictivas.isEmpty();
+                })
+                .map(mesa -> DisponibilidadResponseDTO.MesaDisponibleDTO.builder()
+                        .idMesa(mesa.getIdMesa())
+                        .numeroMesa(mesa.getNumeroMesa())
+                        .capacidad(mesa.getCapacidad())
+                        .ubicacion(mesa.getUbicacion())
+                        .observaciones(mesa.getObservaciones())
+                        .build())
+                .collect(Collectors.toList());
+
+        return DisponibilidadResponseDTO.builder()
+                .mesasDisponibles(mesasDisponibles)
+                .totalDisponibles(mesasDisponibles.size())
+                .build();
     }
 
     private ReservaResponseDTO mapToResponseDTO(Reserva reserva) {

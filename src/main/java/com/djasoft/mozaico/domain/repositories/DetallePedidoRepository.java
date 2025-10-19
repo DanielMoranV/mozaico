@@ -23,6 +23,26 @@ public interface DetallePedidoRepository extends JpaRepository<DetallePedido, In
     );
 
     /**
+     * Query para KDS que filtra solo pedidos activos (ABIERTO y ATENDIDO)
+     * sin filtrar por requierePreparacion
+     */
+    @Query("""
+        SELECT d FROM DetallePedido d
+        WHERE d.estado = :estado
+        AND d.pedido.estado IN ('ABIERTO', 'ATENDIDO')
+        ORDER BY
+            CASE WHEN d.estado = 'LISTO'
+                 THEN COALESCE(d.fechaEstadoActualizado, d.fechaCreacion)
+            END DESC,
+            CASE WHEN d.estado != 'LISTO'
+                 THEN COALESCE(d.fechaEstadoActualizado, d.fechaCreacion)
+            END ASC
+    """)
+    List<DetallePedido> findByEstadoParaKdsSinFiltroPreparacion(
+            @Param("estado") com.djasoft.mozaico.domain.enums.detallepedido.EstadoDetallePedido estado
+    );
+
+    /**
      * Query optimizada para KDS con ordenamiento condicional según el estado:
      * - PEDIDO y EN_PREPARACION: Más antiguo primero (ASC) - FIFO
      * - LISTO: Más nuevo primero (DESC) - LIFO (mostrar recién terminados arriba)

@@ -142,7 +142,8 @@ public class DetallePedidoServiceImpl implements DetallePedidoService {
     @Override
     @Transactional(readOnly = true)
     public List<DetallePedidoResponseDTO> obtenerDetallesPorEstado(EstadoDetallePedido estado) {
-        return detallePedidoRepository.findByEstado(estado).stream()
+        // Usa query optimizada que filtra por pedidos ABIERTO y ATENDIDO (sin filtrar requierePreparacion)
+        return detallePedidoRepository.findByEstadoParaKdsSinFiltroPreparacion(estado).stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }

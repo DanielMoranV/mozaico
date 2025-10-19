@@ -2,6 +2,8 @@ package com.djasoft.mozaico.web.controllers;
 
 import com.djasoft.mozaico.domain.enums.reserva.EstadoReserva;
 import com.djasoft.mozaico.services.ReservaService;
+import com.djasoft.mozaico.web.dtos.DisponibilidadRequestDTO;
+import com.djasoft.mozaico.web.dtos.DisponibilidadResponseDTO;
 import com.djasoft.mozaico.web.dtos.ReservaRequestDTO;
 import com.djasoft.mozaico.web.dtos.ReservaResponseDTO;
 import com.djasoft.mozaico.web.dtos.ReservaUpdateDTO;
@@ -77,5 +79,12 @@ public class ReservaController {
     ) {
         List<ReservaResponseDTO> reservas = reservaService.buscarReservas(idCliente, idMesa, fechaHoraReservaDesde, fechaHoraReservaHasta, estado, numeroPersonas, searchTerm, logic);
         return ResponseEntity.ok(ApiResponse.success(reservas, "Búsqueda de Reservas exitosa"));
+    }
+
+    @PostMapping("/disponibilidad")
+    public ResponseEntity<ApiResponse<DisponibilidadResponseDTO>> consultarDisponibilidad(
+            @Valid @RequestBody DisponibilidadRequestDTO requestDTO) {
+        DisponibilidadResponseDTO disponibilidad = reservaService.consultarDisponibilidad(requestDTO);
+        return ResponseEntity.ok(ApiResponse.success(disponibilidad, "Consulta de disponibilidad exitosa"));
     }
 }

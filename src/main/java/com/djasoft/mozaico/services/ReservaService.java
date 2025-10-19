@@ -1,6 +1,8 @@
 package com.djasoft.mozaico.services;
 
 import com.djasoft.mozaico.domain.enums.reserva.EstadoReserva;
+import com.djasoft.mozaico.web.dtos.DisponibilidadRequestDTO;
+import com.djasoft.mozaico.web.dtos.DisponibilidadResponseDTO;
 import com.djasoft.mozaico.web.dtos.ReservaRequestDTO;
 import com.djasoft.mozaico.web.dtos.ReservaResponseDTO;
 import com.djasoft.mozaico.web.dtos.ReservaUpdateDTO;
@@ -32,4 +34,6 @@ public interface ReservaService {
             String searchTerm,
             String logic
     );
+
+    DisponibilidadResponseDTO consultarDisponibilidad(DisponibilidadRequestDTO requestDTO);
 }

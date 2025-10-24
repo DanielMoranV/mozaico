@@ -31,7 +31,7 @@ public class Comprobante {
     @Column(nullable = false)
     private TipoComprobante tipoComprobante;
 
-    @Column(name = "numero_comprobante", unique = true, nullable = false)
+    @Column(name = "numero_comprobante", nullable = false)
     private String numeroComprobante;
 
     @Column(name = "serie_comprobante")

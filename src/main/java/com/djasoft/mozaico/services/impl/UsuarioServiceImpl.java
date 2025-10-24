@@ -169,7 +169,7 @@ public class UsuarioServiceImpl implements UsuarioService {
             // Si no hay predicados, devolver null para que findAll devuelva todos los
             // usuarios
             if (predicates.isEmpty()) {
-                return null;
+                return criteriaBuilder.conjunction(); // Equivalente a WHERE 1=1
             }
 
             // Combinar predicados con AND u OR según el parámetro 'logic'

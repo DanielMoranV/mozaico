@@ -15,7 +15,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "mesas")
+@Table(name = "mesas",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"numero_mesa", "id_empresa"}))
 public class Mesa {
 
     @Id
@@ -23,7 +24,7 @@ public class Mesa {
     @Column(name = "id_mesa")
     private Integer idMesa;
 
-    @Column(name = "numero_mesa", nullable = false, unique = true)
+    @Column(name = "numero_mesa", nullable = false)
     private Integer numeroMesa;
 
     @Column(name = "capacidad", nullable = false)

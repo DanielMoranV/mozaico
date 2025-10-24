@@ -138,8 +138,9 @@ public class MesaServiceImpl implements MesaService {
                 predicates.add(globalSearch);
             }
 
+            // Si no hay predicates, retornar criterio que sea siempre verdadero (traer todos)
             if (predicates.isEmpty()) {
-                return null;
+                return criteriaBuilder.conjunction(); // Equivalente a WHERE 1=1
             }
 
             if ("OR".equalsIgnoreCase(logic)) {

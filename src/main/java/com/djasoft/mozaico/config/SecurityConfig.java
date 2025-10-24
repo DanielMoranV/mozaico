@@ -89,11 +89,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Usar allowedOriginPatterns para permitir acceso desde la red local
+        // Usar allowedOriginPatterns para permitir acceso desde la red local y dominios de producción
         configuration.setAllowedOriginPatterns(Arrays.asList(
                 "http://localhost:*",
                 "http://0.0.0.0:*",
-                "http://192.168.1.*:*"  // Permitir cualquier dispositivo en la red local
+                "http://192.168.1.*:*",  // Permitir cualquier dispositivo en la red local
+                "https://mozaico.djasoft.net.pe",  // Frontend de producción
+                "https://*.djasoft.net.pe"  // Cualquier subdominio de djasoft.net.pe
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*")); // Permitir todas las cabeceras

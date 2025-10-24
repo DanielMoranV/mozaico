@@ -25,6 +25,18 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * DataLoader - Cargador de datos de prueba para desarrollo
+ *
+ * ⚠️ IMPORTANTE - ARQUITECTURA MULTITENANT:
+ * - Todas las entidades están aisladas por empresa (id_empresa)
+ * - Los constraints UNIQUE se aplican POR EMPRESA (índices compuestos)
+ * - Dos empresas PUEDEN tener categorías/mesas/clientes con el mismo nombre/número
+ * - La validación de unicidad debe considerar el scope de empresa
+ *
+ * Este seeder crea UNA empresa de prueba llamada "Restaurante Mozaico"
+ * y carga datos de ejemplo solo para esa empresa.
+ */
 @Component
 @RequiredArgsConstructor
 public class DataLoader implements CommandLineRunner {
@@ -49,15 +61,21 @@ public class DataLoader implements CommandLineRunner {
 
         @Override
         public void run(String... args) throws Exception {
-                if (categoriaRepository.count() == 0) { // Run only if DB is empty
-                        System.out.println("Iniciando carga de datos de prueba...");
+                // Verificar si ya existe la empresa con el slug único
+                if (empresaRepository.findBySlug("restaurante-mozaico").isPresent()) {
+                        System.out.println("⚠️  Los datos de prueba ya fueron cargados anteriormente.");
+                        System.out.println("   Para recargar, elimina la base de datos y vuelve a ejecutar.");
+                        return;
+                }
 
-                        // PASO 0: CONFIGURACIÓN DE EMPRESA - Negocio informal sin RUC
-                        System.out.println("0. Configurando datos de la empresa...");
-                        Empresa empresaMozaico = createEmpresaInformal();
+                System.out.println("Iniciando carga de datos de prueba...");
 
-                        // PASO 4: PERSONAL - Usuarios del sistema (empleados)
-                        System.out.println("4. Registrando personal del restaurante...");
+                // PASO 0: CONFIGURACIÓN DE EMPRESA - Negocio informal sin RUC
+                System.out.println("0. Configurando datos de la empresa...");
+                Empresa empresaMozaico = createEmpresaInformal();
+
+                // PASO 4: PERSONAL - Usuarios del sistema (empleados)
+                System.out.println("4. Registrando personal del restaurante...");
 
                         // Super Admin
                         Usuario developer = createUsuario("Daniel Moran Vilchez", "dmoran", "daniel.moranv94@gmail.com",
@@ -555,11 +573,10 @@ public class DataLoader implements CommandLineRunner {
                         System.out.println("   - 4 Menús especiales");
                         System.out.println("   - 8 Clientes registrados");
                         System.out.println("   - 6 Métodos de pago");
-                        System.out.println("   - Simulación de operación diaria activa");
-                        System.out.println("   - Sistema de reservas configurado");
-                        System.out.println("   - Historial de compras a proveedores");
-                        System.out.println("🎟️  CONFIGURACIÓN: Negocio informal - Solo emite tickets sin IGV");
-                }
+                System.out.println("   - Simulación de operación diaria activa");
+                System.out.println("   - Sistema de reservas configurado");
+                System.out.println("   - Historial de compras a proveedores");
+                System.out.println("🎟️  CONFIGURACIÓN: Negocio informal - Solo emite tickets sin IGV");
         }
 
         private Producto createProducto(String nombre, String descripcion, BigDecimal precio, Categoria categoria,

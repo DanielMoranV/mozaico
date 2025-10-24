@@ -17,7 +17,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "clientes")
+@Table(name = "clientes",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"email", "id_empresa"}))
 public class Cliente {
 
     @Id
@@ -33,7 +34,7 @@ public class Cliente {
     private String apellido;
 
     // === DATOS DE CONTACTO ===
-    @Column(name = "email", unique = true, length = 150)
+    @Column(name = "email", length = 150)
     private String email;
 
     @Column(name = "telefono", length = 20)

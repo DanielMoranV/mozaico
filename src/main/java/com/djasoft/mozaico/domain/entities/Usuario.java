@@ -25,7 +25,12 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "usuarios")
+@Table(name = "usuarios",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"username", "id_empresa"}),
+        @UniqueConstraint(columnNames = {"email", "id_empresa"}),
+        @UniqueConstraint(columnNames = {"numero_documento_identidad", "id_empresa"})
+    })
 @EqualsAndHashCode(exclude = {"empresa"})
 public class Usuario implements UserDetails {
 
@@ -37,17 +42,17 @@ public class Usuario implements UserDetails {
     @Column(name = "nombre", nullable = false, length = 200)
     private String nombre;
 
-    @Column(name = "username", nullable = false, unique = true, length = 50)
+    @Column(name = "username", nullable = false, length = 50)
     private String username;
 
-    @Column(name = "numero_documento_identidad", nullable = false, unique = true, length = 20)
+    @Column(name = "numero_documento_identidad", nullable = false, length = 20)
     private String numeroDocumentoIdentidad;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_documento_identidad", nullable = false, length = 20)
     private TipoDocumentoIdentidad tipoDocumentoIdentidad;
 
-    @Column(name = "email", nullable = false, unique = true, length = 100)
+    @Column(name = "email", nullable = false, length = 100)
     private String email;
 
     @Column(name = "password_hash", nullable = false)

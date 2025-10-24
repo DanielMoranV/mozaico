@@ -15,7 +15,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "categorias")
+@Table(name = "categorias",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"nombre", "id_empresa"}))
 public class Categoria {
 
     @Id
@@ -23,7 +24,7 @@ public class Categoria {
     @Column(name = "id_categoria")
     private Long idCategoria;
 
-    @Column(name = "nombre", nullable = false, unique = true, length = 100)
+    @Column(name = "nombre", nullable = false, length = 100)
     private String nombre;
 
     @Column(name = "descripcion", columnDefinition = "TEXT")

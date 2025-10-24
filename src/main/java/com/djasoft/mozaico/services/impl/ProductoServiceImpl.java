@@ -290,7 +290,7 @@ public class ProductoServiceImpl implements ProductoService {
             }
 
             if (predicates.isEmpty()) {
-                return null;
+                return criteriaBuilder.conjunction(); // Equivalente a WHERE 1=1
             }
 
             if ("OR".equalsIgnoreCase(logic)) {

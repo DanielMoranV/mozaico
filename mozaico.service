@@ -1,0 +1,25 @@
+[Unit]
+Description=Mozaico - Sistema de Gestión de Restaurant
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=maeldev
+Group=maeldev
+WorkingDirectory=/home/maeldev/Code/mozaico
+ExecStart=/usr/bin/java -jar /home/maeldev/Code/mozaico/target/mozaico-0.0.1-SNAPSHOT.jar
+StandardOutput=append:/home/maeldev/Code/mozaico/logs/mozaico.log
+StandardError=append:/home/maeldev/Code/mozaico/logs/mozaico-error.log
+Restart=always
+RestartSec=10
+
+# Configuraciones de seguridad y recursos
+# Limitar memoria (ajusta según tus necesidades)
+MemoryLimit=1G
+
+# Variables de entorno (opcional)
+Environment="JAVA_OPTS=-Xmx512m -Xms256m"
+
+[Install]
+WantedBy=multi-user.target
